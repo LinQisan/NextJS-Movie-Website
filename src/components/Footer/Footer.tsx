@@ -21,7 +21,10 @@ export default function Footer() {
         </p>
         <div className='flex items-center gap-1 text-sm'>
           Built using the Next.js. View the code:
-          <Link href={'/'} className='h-fit'>
+          <Link
+            href='https://github.com/LinQisan/NextJS-Movie-Website'
+            className='h-fit'
+          >
             <FaGithub />
           </Link>
         </div>

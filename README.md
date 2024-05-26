@@ -25,8 +25,8 @@ To install this project, follow these steps:
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/yourusername/movies-search.git
-   cd movies-search
+   git clone https://github.com/LinQisan/NextJS-Movie-Website.git
+   cd NextJS-Movie-Website
    ```
 
 2. Install the dependencies:

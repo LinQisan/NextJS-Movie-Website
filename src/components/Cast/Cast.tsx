@@ -1,6 +1,5 @@
 import Image from 'next/image';
 import { Badge } from '../ui/badge';
-import { Separator } from '../ui/separator';
 
 interface data {
   department: string;

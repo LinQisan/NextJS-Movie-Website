@@ -1,5 +1,5 @@
 import { Media, Movie } from '@/lib/data';
-import { getBase64 } from '@/lib/util';
+import { getBase64 } from '@/lib/helpers';
 import Image from 'next/image';
 import Link from 'next/link';
 

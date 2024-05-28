@@ -1,5 +1,3 @@
-// import SearchResult from '@/components/SearchResult';
-
 import Search from '@/components/Search/Search';
 
 export default function Page({

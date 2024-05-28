@@ -1,4 +1,4 @@
-import { LandscapeCardMap } from '@/components/LandscapeCard/LandscapeCardMap';
+import { LandscapeCardMap } from '@/components/MediaCard/LandscapeCardMap';
 
 import { Carousel } from '@/components/Carousel/Carousel';
 import { CarouselCardMap } from '@/components/Carousel/CarouselCardMap';
@@ -10,7 +10,7 @@ export default async function Home() {
         <CarouselCardMap />
       </Carousel>
       <div className='grid grid-cols-1 gap-4 place-self-center md:grid-cols-2'>
-        <LandscapeCardMap />
+        <LandscapeCardMap count={6} />
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import { LandscapeCardMap } from '@/components/LandscapeCard/LandscapeCardMap';
+import { LandscapeCardMap } from '@/components/MediaCard/LandscapeCardMap';
 import GridLoading from '@/components/Loading/GridLoading';
 import { Suspense } from 'react';
 

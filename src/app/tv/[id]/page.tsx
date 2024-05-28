@@ -1,7 +1,7 @@
 import SeasonSelect from '@/components/SeasonSelect/SeasonSelect';
 import { Badge } from '@/components/ui/badge';
 import { fetchTVDetails } from '@/lib/data';
-import { getBase64 } from '@/lib/util';
+import { getBase64 } from '@/lib/helpers';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import Crew from '@/components/Crew/Crew';

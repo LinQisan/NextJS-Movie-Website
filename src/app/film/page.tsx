@@ -1,13 +1,14 @@
 import GridLoading from '@/components/Loading/GridLoading';
-import GridWrapper from '@/components/PortraitCard/GridWrapper';
-import { PortaitCardMap } from '@/components/PortraitCard/PortraitCardMap';
+import { PortraitCardMap } from '@/components/MediaCard/PortraitCardMap';
+import GridWrapper from '@/components/ui/GridWrapper';
+
 import { Suspense } from 'react';
 
 export default async function Page() {
   return (
     <GridWrapper>
       <Suspense fallback={<GridLoading />}>
-        <PortaitCardMap />
+        <PortraitCardMap />
       </Suspense>
     </GridWrapper>
   );

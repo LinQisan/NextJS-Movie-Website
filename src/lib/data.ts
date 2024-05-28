@@ -1,5 +1,5 @@
 'use server';
-import { yearDiff } from './util';
+import { yearDiff } from './utils';
 
 export interface Movie {
   adult: Boolean;
@@ -51,24 +51,10 @@ const options = {
   },
 };
 
-export async function fetchTrendingMovie() {
+export async function getTrending(media: 'movie' | 'tv') {
   try {
     const res = await fetch(
-      'https://api.themoviedb.org/3/trending/movie/week?language=zh-CN',
-      options,
-    );
-    const { results: data } = await res.json();
-
-    return data;
-  } catch (err) {
-    console.error(err);
-  }
-}
-
-export async function fetchTrendingTV() {
-  try {
-    const res = await fetch(
-      'https://api.themoviedb.org/3/trending/tv/week?language=zh-CN',
+      `https://api.themoviedb.org/3/trending/${media}/week?language=zh-CN`,
       options,
     );
     const { results: data } = await res.json();

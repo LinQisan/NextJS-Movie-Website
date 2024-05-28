@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { Card, CardTitle } from '@/components/ui/card';
-import { getBase64 } from '@/lib/util';
+import { getBase64 } from '@/lib/helpers';
 import { Metadata } from 'next';
 
 export async function generateMetadata({

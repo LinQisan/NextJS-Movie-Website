@@ -2,7 +2,7 @@ import { TV, fetchMoviesName, fetchTVName } from '@/lib/data';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 
 import SearchCard from './SearchCard';
-import GridWrapper from '../PortraitCard/GridWrapper';
+import GridWrapper from '../ui/GridWrapper';
 
 export default async function Search({ query }: { query: string }) {
   const movie = await fetchMoviesName(query);
@@ -22,7 +22,7 @@ export default async function Search({ query }: { query: string }) {
 
         <TabsContent value='movie'>
           <GridWrapper>
-            {movie.map((data) => (
+            {movie.map((data: any) => (
               <SearchCard key={data.id} data={data} />
             ))}
           </GridWrapper>

@@ -1,4 +1,4 @@
-import { fetchTrendingMovie } from '@/lib/data';
+import { getTrending } from '@/lib/data';
 import CarouselCard from './CarouselCard';
 
 interface data {
@@ -8,7 +8,7 @@ interface data {
   release_date: string;
 }
 export async function CarouselCardMap() {
-  const data: data[] = await fetchTrendingMovie();
+  const data: data[] = await getTrending('movie');
   return data.map(({ id, title, poster_path, release_date }) => {
     const year = new Date(release_date).getFullYear();
     return (

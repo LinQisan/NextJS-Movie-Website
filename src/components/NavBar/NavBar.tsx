@@ -39,25 +39,31 @@ export function NavBar() {
               transition={{ type: 'spring', stiffness: 400, damping: 10 }}
               onClick={() => setSearching(true)}
             >
-              <svg
-                xmlns='http://www.w3.org/2000/svg'
-                fill='none'
-                viewBox='0 0 24 24'
-                strokeWidth={2.5}
-                stroke='white'
-                className='h-4 w-4 md:h-8 md:w-8'
-                aria-hidden='true'
-              >
-                <path
-                  strokeLinecap='round'
-                  strokeLinejoin='round'
-                  d='m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z'
-                />
-              </svg>
+              <SearchLogo />
             </motion.button>
           </motion.div>
         </AnimatePresence>
       )}
     </motion.nav>
+  );
+}
+
+function SearchLogo() {
+  return (
+    <svg
+      xmlns='http://www.w3.org/2000/svg'
+      fill='none'
+      viewBox='0 0 24 24'
+      strokeWidth={2.5}
+      stroke='white'
+      className='h-4 w-4 md:h-8 md:w-8'
+      aria-hidden='true'
+    >
+      <path
+        strokeLinecap='round'
+        strokeLinejoin='round'
+        d='m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z'
+      />
+    </svg>
   );
 }

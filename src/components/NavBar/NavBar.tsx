@@ -1,10 +1,11 @@
 'use client';
 import React from 'react';
+import { usePathname } from 'next/navigation';
+
 import { motion, AnimatePresence } from 'framer-motion';
 
 import NavSearch from './NavSearch';
 import NavLink from './NavLink';
-import { usePathname } from 'next/navigation';
 
 export function NavBar() {
   const [searching, setSearching] = React.useState<boolean>(false);

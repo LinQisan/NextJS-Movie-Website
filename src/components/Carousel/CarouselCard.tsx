@@ -30,9 +30,9 @@ export default async function CarouselCard({
           className='object-cover'
         />
       </Link>
-      <p className='text-xm inline-block truncate text-left font-semibold'>
+      <h2 className='text-xm inline-block truncate text-left font-semibold'>
         {name}
-      </p>
+      </h2>
       <p className='-mt-1 inline-block text-left text-xs text-gray-800 '>
         {year}
       </p>

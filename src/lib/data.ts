@@ -1,7 +1,7 @@
 'use server';
 import { yearDiff } from './utils';
 
-export interface Movie {
+export type Movie = {
   adult: Boolean;
   backdrop_path: string;
   genre_ids: number[];
@@ -16,9 +16,9 @@ export interface Movie {
   video: false;
   vote_average: number;
   vote_count: number;
-}
+};
 
-export interface TV {
+export type TV = {
   adult: Boolean;
   backdrop_path: string;
   genre_ids: number[];
@@ -33,7 +33,53 @@ export interface TV {
   name: string;
   vote_average: number;
   vote_count: number;
-}
+};
+
+export type tvDetail = {
+  backdrop_path: string;
+  first_air_date: string;
+  genres: {
+    id: number;
+    name: string;
+  }[];
+  id: number;
+  name: string;
+  original_name: string;
+  tagline?: string;
+  content_ratings: {
+    results?: {
+      iso_3166_1: string;
+      rating: string;
+    }[];
+  };
+  vote_average: number;
+  overview: string;
+  production_companies: {
+    id: number;
+    name: string;
+  }[];
+  aggregate_credits: {
+    cast: {
+      id: number;
+      profile_path?: string;
+    }[];
+    crew: {
+      id: number;
+      profile_path?: string;
+      jobs: {
+        credit_id: string;
+        job: string;
+      }[];
+    }[];
+  };
+  seasons: season[];
+};
+
+export type season = {
+  episode_count: number;
+  id: number;
+  season_number: number;
+};
 
 export type Media = Movie | TV;
 
@@ -136,20 +182,22 @@ export async function fetchMovieDetails(id: string) {
     console.error(err);
   }
 }
-export async function fetchTVSeasonDetails(
-  seriesId: number,
-  seasonNumber: string,
-) {
-  try {
-    const res = await fetch(
-      `https://api.themoviedb.org/3/tv/${seriesId}/season/${seasonNumber}?language=zh-CN`,
-      options,
-    );
-    const data = await res.json();
-    return data;
-  } catch (err) {
-    console.error(err);
-  }
+
+export async function getSeasonDetails(id: string, seasons: season[]) {
+  const seasonPromises = seasons.map(async (season: season) => {
+    try {
+      const response = await fetch(
+        `https://api.themoviedb.org/3/tv/${id}/season/${season.season_number}?language=zh-CN`,
+        options,
+      );
+      return await response.json();
+    } catch (err) {
+      console.error(`Error fetching season ${season.season_number}:`, err);
+      return null;
+    }
+  });
+  const data = await Promise.all(seasonPromises);
+  return data;
 }
 
 export async function fetchTVDetails(id: string) {
@@ -159,24 +207,9 @@ export async function fetchTVDetails(id: string) {
       options,
     );
     const tvDetails = await detailsRes.json();
-    const seasonPromises = tvDetails.seasons.map(async (season: any) => {
-      try {
-        const response = await fetch(
-          `https://api.themoviedb.org/3/tv/${id}/season/${season.season_number}?language=zh-CN`,
-          options,
-        );
-        return await response.json();
-      } catch (err) {
-        console.error(`Error fetching season ${season.season_number}:`, err);
-        return null;
-      }
-    });
-
-    const seasonData = await Promise.all(seasonPromises);
 
     return {
       ...tvDetails,
-      seasonData,
     };
   } catch (err) {
     console.error(err);

@@ -2,7 +2,6 @@
 import React from 'react';
 import useEmblaCarousel from 'embla-carousel-react';
 import AutoScroll from 'embla-carousel-auto-scroll';
-import Autoplay from 'embla-carousel-autoplay';
 
 export default function CrewWrapper({
   children,

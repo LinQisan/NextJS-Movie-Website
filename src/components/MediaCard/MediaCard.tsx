@@ -2,7 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 
 import { getBase64 } from '@/lib/helpers';
-import clsx from 'clsx';
+import { cn } from '@/lib/utils';
 
 type Media = {
   imgUrl: string;
@@ -21,17 +21,15 @@ export default async function MediaCard({
 }: Media) {
   return (
     <div
-      className={clsx(
-        'flex flex-col gap-1',
-        !movie && 'w-[337.5px]',
+      className={cn(
+        'flex w-[337.5px] flex-col gap-1',
         movie && 'w-[100px] md:w-[150px]',
       )}
     >
       <Link
         href={`/${movie ? 'film' : 'tv'}/${id}`}
-        className={clsx(
-          'select-none overflow-hidden rounded-lg shadow-md',
-          !movie && 'aspect-[16/9]',
+        className={cn(
+          'aspect-[16/9] select-none overflow-hidden rounded-lg shadow-md',
           movie && 'aspect-[2/3]',
         )}
       >
@@ -47,10 +45,9 @@ export default async function MediaCard({
         />
       </Link>
       <h2
-        className={clsx(
-          'text-xm inline-block truncate font-semibold',
+        className={cn(
+          'text-xm inline-block truncate text-center font-semibold',
           movie && 'text-left',
-          !movie && 'text-center',
         )}
       >
         {name}

@@ -1,11 +1,12 @@
 import { getTrending } from '@/lib/data';
 import MediaCard from './MediaCard';
 
-interface data {
+type data= {
   id: number;
   name: string;
   backdrop_path: string;
 }
+
 export async function LandscapeCardMap({ count }: { count?: number }) {
   let data: data[] = await getTrending('tv');
   if (count) {

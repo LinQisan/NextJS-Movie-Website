@@ -1,6 +1,6 @@
-import SeasonSelect from '@/components/SeasonSelect/SeasonSelect';
+import SeasonsLayout from '@/components/SeasonSelect/SeasonsLayout';
 import { Badge } from '@/components/ui/badge';
-import { fetchTVDetails } from '@/lib/data';
+import { TV, tvDetail, fetchTVDetails } from '@/lib/data';
 import { getBase64 } from '@/lib/helpers';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
@@ -10,6 +10,7 @@ import Cast from '@/components/Cast/Cast';
 import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Metadata } from 'next';
+import { Suspense } from 'react';
 
 export async function generateMetadata({
   params,
@@ -17,7 +18,6 @@ export async function generateMetadata({
   params: { id: string };
 }): Promise<Metadata> {
   const data = await fetchTVDetails(params.id);
-
   return {
     title: data.name,
     openGraph: {
@@ -28,16 +28,8 @@ export async function generateMetadata({
   };
 }
 
-function getCertificationByCountry(data: any, isoCode: string) {
-  if (!Array.isArray(data) || data.length === 0) {
-    return null;
-  }
-  const result = data.filter((i: any) => i.iso_3166_1 === isoCode);
-  return result.length > 0 ? result[0].rating : null;
-}
-
 export default async function Page({ params }: { params: { id: string } }) {
-  const data = await fetchTVDetails(params.id);
+  const data: tvDetail = await fetchTVDetails(params.id);
 
   return (
     <div className='mx-auto flex max-w-fit flex-col justify-center gap-2 '>
@@ -161,7 +153,9 @@ export default async function Page({ params }: { params: { id: string } }) {
         </TabsContent>
       </Tabs>
       <Separator />
-      <SeasonSelect data={data}></SeasonSelect>
+      <Suspense>
+        <SeasonsLayout id={params.id} seasons={data.seasons}></SeasonsLayout>
+      </Suspense>
       {data.production_companies.length > 0 && <Separator />}
       <div className='flex flex-col gap-2'>
         {data.production_companies.map((i: any) => (
@@ -175,4 +169,12 @@ export default async function Page({ params }: { params: { id: string } }) {
       </div>
     </div>
   );
+}
+
+function getCertificationByCountry(data: any, isoCode: string) {
+  if (!Array.isArray(data) || data.length === 0) {
+    return null;
+  }
+  const result = data.filter((i: any) => i.iso_3166_1 === isoCode);
+  return result.length > 0 ? result[0].rating : null;
 }

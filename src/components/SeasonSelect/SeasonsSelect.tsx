@@ -1,11 +1,10 @@
 'use client';
-
 import React from 'react';
-
-export default function SeasonSelect({ data }: { data: any }) {
+export default function SeasonsSelect({ data }: { data: any }) {
   const [selectSeason, setSelectSeason] = React.useState('1');
   const [selectEpisode, setSelectEpisode] = React.useState('1');
-  const Season = data.seasonData.filter(
+
+  const Season = data?.filter(
     (i: any) => i.season_number === Number(selectSeason),
   )[0].episodes;
   const Episode = Season.filter(
@@ -15,18 +14,20 @@ export default function SeasonSelect({ data }: { data: any }) {
   return (
     <div className='w-[380px] text-justify font-light md:w-[600px]'>
       <div className='flex gap-2'>
+        <input type='hidden' name='season' value={selectSeason} />
         <select
           name='TV Season'
           defaultValue={1}
           onChange={(e) => setSelectSeason(e.target.value)}
           className='h-8 rounded-sm bg-slate-100 font-normal text-slate-600 hover:bg-gray-200 hover:text-black'
         >
-          {data.seasons.map((i: any) => (
+          {data.map((i: any) => (
             <option key={i.id} value={i.season_number}>
               {i.name}
             </option>
           ))}
         </select>
+
         <select
           name='TV Eposide'
           defaultValue={1}

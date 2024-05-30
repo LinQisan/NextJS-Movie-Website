@@ -1,39 +1,33 @@
 'use server';
 import { yearDiff } from './utils';
 
-export type Movie = {
-  adult: Boolean;
-  backdrop_path: string;
+type BaseMedia = {
+  backdrop_path?: string;
   genre_ids: number[];
   id: number;
   original_language: string;
-  original_title: string;
   overview: string;
   popularity: number;
   poster_path: string;
-  release_date: string;
-  title: string;
-  video: false;
   vote_average: number;
   vote_count: number;
 };
 
-export type TV = {
-  adult: Boolean;
-  backdrop_path: string;
-  genre_ids: number[];
-  id: number;
+export type Movie = BaseMedia & {
+  original_title: string;
+  release_date: string;
+  title: string;
+  video: false;
+};
+
+export type TV = BaseMedia & {
   origin_country: string[];
-  original_language: string;
   original_name: string;
-  overview: string;
-  popularity: number;
-  poster_path: string;
   first_air_date: string;
   name: string;
-  vote_average: number;
-  vote_count: number;
 };
+
+export type Media = Movie | TV;
 
 export type tvDetail = {
   backdrop_path?: string;
@@ -94,8 +88,9 @@ export type MovieDetail = {
 };
 
 export type season = {
-  episode_count: number;
   id: number;
+  name: string;
+  episode_count: number;
   season_number: number;
 };
 
@@ -134,7 +129,20 @@ export type MovieCredits = {
   }[];
 };
 
-export type Media = Movie | TV;
+export type SeasonDetail = {
+  id: number;
+  name: string;
+  episodes: {
+    id: number;
+    air_date: string;
+    episode_number: number;
+    name: string;
+    overview: string;
+    runtime: number;
+    vote_average: number;
+  }[];
+  season_number: number;
+}[];
 
 const options = {
   method: 'GET',
@@ -238,11 +246,11 @@ export async function getSeasonDetails(id: string, seasons: season[]) {
       );
       return await response.json();
     } catch (err) {
-      console.error(`Error fetching season ${season.season_number}:`, err);
-      return null;
+      throw new Error('Failed to fetch SeasonDetails data');
     }
   });
-  const data = await Promise.all(seasonPromises);
+  const data: SeasonDetail = await Promise.all(seasonPromises);
+
   return data;
 }
 

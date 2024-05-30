@@ -1,7 +1,6 @@
-import Image from 'next/image';
-
 import { Badge } from '../ui/badge';
 import { StarLogo } from './StarLogo';
+import ImageHolder from '../ui/ImageHolder';
 
 type BaseCast = {
   id: number;
@@ -55,12 +54,12 @@ function Cast({ department, name, character, profile_path }: CastProps) {
     <div className='flex gap-2 pl-2'>
       <div className='flex aspect-[2/3] h-[80px] w-[70px] items-center justify-center overflow-hidden rounded-lg border-2'>
         {profile_path ? (
-          <Image
+          <ImageHolder
             src={`https://media.themoviedb.org/t/p/w276_and_h350_face${profile_path}`}
             alt={`${name}'s Photos`}
             width={70}
             height={80}
-            className='object-cover'
+            overrideSrc={`/${name}`}
           />
         ) : (
           <StarLogo />
@@ -68,7 +67,7 @@ function Cast({ department, name, character, profile_path }: CastProps) {
       </div>
       <div className='flex flex-col justify-between'>
         <div className='flex flex-col'>
-          <h2 className=''>{name}</h2>
+          <h2>{name}</h2>
           <Badge className='w-fit select-none text-clip text-nowrap rounded-md bg-zinc-950 px-2 py-0 text-center font-mono text-xs font-light text-white hover:bg-zinc-900'>
             {department}
           </Badge>

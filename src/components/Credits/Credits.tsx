@@ -6,7 +6,7 @@ import CrewList from './CrewList';
 
 import { getMovieDetails, getTVCredits } from '@/lib/data';
 
-export default async function TVCredits({
+export default async function Credits({
   id,
   media,
 }: {

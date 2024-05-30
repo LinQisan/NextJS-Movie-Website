@@ -1,7 +1,8 @@
-import { Media, Movie } from '@/lib/data';
-import { getBase64 } from '@/lib/helpers';
-import Image from 'next/image';
 import Link from 'next/link';
+
+import ImageHolder from '../ui/ImageHolder';
+
+import { Media } from '@/lib/data';
 
 export default async function SearchCard({ data }: { data: Media }) {
   const isFilm = 'title' in data;
@@ -14,17 +15,12 @@ export default async function SearchCard({ data }: { data: Media }) {
         className='aspect-[2/3] select-none overflow-hidden rounded-lg shadow-md'
       >
         {data.poster_path ? (
-          <Image
+          <ImageHolder
             src={`https://media.themoviedb.org/t/p/w600_and_h900_bestv2${data.poster_path}`}
             alt={`${MediaName}'s Photos`}
             width={150}
             height={225}
-            className='object-cover'
-            overrideSrc={`/${MediaName}.jpg`}
-            placeholder='blur'
-            blurDataURL={await getBase64(
-              `https://media.themoviedb.org/t/p/w600_and_h900_bestv2${data.poster_path}`,
-            )}
+            overrideSrc={`/${MediaName}`}
           />
         ) : (
           <div className='flex aspect-[2/3] items-center justify-center '>

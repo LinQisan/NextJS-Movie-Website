@@ -1,16 +1,16 @@
 import { Suspense } from 'react';
 import { Metadata } from 'next';
-import Image from 'next/image';
 
-import { getBase64 } from '@/lib/helpers';
 import { cn } from '@/lib/utils';
 import { fetchTVDetails } from '@/lib/data';
 
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 
-import SeasonsLayout from '@/components/SeasonSelect/SeasonsLayout';
+import SeasonsSelect from '@/components/SeasonSelect/SeasonsSelect';
 import Credits from '@/components/Credits/Credits';
+import ImageHolder from '@/components/ui/ImageHolder';
+import CreditsLoading from '@/components/Loading/CreditsLoading';
 
 export async function generateMetadata({
   params,
@@ -36,17 +36,13 @@ export default async function Page({ params }: { params: { id: string } }) {
       {data.backdrop_path && (
         <div className='relative max-w-fit'>
           <div className='aspect-video w-[380px] select-none overflow-hidden rounded-lg shadow-md md:w-[600px]'>
-            <Image
+            <ImageHolder
               src={`https://image.tmdb.org/t/p/original${data.backdrop_path}`}
               alt={`${data.name}'s backdrop`}
               width={600}
               height={300}
-              className='object-cover'
               overrideSrc={`/${data.name}.jpg`}
-              placeholder='blur'
-              blurDataURL={await getBase64(
-                `https://image.tmdb.org/t/p/original${data.backdrop_path}`,
-              )}
+              priority={true}
             />
           </div>
           <div className='absolute bottom-0 left-0 w-full rounded p-2 text-white backdrop-blur-md backdrop-brightness-50 backdrop-filter'>
@@ -104,12 +100,12 @@ export default async function Page({ params }: { params: { id: string } }) {
           </Badge>
         ))}
       </div>
-      <Suspense>
+      <Suspense fallback={<CreditsLoading />}>
         <Credits id={params.id} media='tv' />
       </Suspense>
       <Separator />
       <Suspense>
-        <SeasonsLayout id={params.id} seasons={data.seasons}></SeasonsLayout>
+        <SeasonsSelect id={params.id} seasons={data.seasons}></SeasonsSelect>
       </Suspense>
       {data.production_companies.length > 0 && <Separator />}
       <div className='flex flex-col gap-2'>

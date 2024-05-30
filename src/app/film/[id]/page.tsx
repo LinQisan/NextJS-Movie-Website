@@ -1,14 +1,12 @@
 import { Suspense } from 'react';
 import { Metadata } from 'next';
-import Image from 'next/image';
 
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-
+import ImageHolder from '@/components/ui/ImageHolder';
 import Credits from '@/components/Credits/Credits';
-import { cn } from '@/lib/utils';
-import { getBase64 } from '@/lib/helpers';
 
+import { cn } from '@/lib/utils';
 import { getMovieDetails } from '@/lib/data';
 
 export async function generateMetadata({
@@ -36,17 +34,13 @@ export default async function Page({ params }: { params: { id: string } }) {
       {data.backdrop_path && (
         <div className='relative max-w-fit'>
           <div className='aspect-video w-[380px] select-none overflow-hidden rounded-lg shadow-md md:w-[600px]'>
-            <Image
+            <ImageHolder
               src={`https://image.tmdb.org/t/p/original${data.backdrop_path}`}
               alt={`${data.title}'s backdrop`}
               width={600}
               height={300}
-              className='object-cover'
-              overrideSrc={`/${data.title}.jpg`}
-              placeholder='blur'
-              blurDataURL={await getBase64(
-                `https://image.tmdb.org/t/p/original${data.backdrop_path}`,
-              )}
+              overrideSrc={`/${data.title}`}
+              priority={true}
             />
           </div>
           <div className='absolute bottom-0 left-0 w-full rounded p-2 text-white backdrop-blur-md backdrop-brightness-50 backdrop-filter'>

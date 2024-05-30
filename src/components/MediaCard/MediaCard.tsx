@@ -1,7 +1,7 @@
-import Image from 'next/image';
 import Link from 'next/link';
 
-import { getBase64 } from '@/lib/helpers';
+import ImageHolder from '../ui/ImageHolder';
+
 import { cn } from '@/lib/utils';
 
 type Media = {
@@ -33,15 +33,12 @@ export default async function MediaCard({
           movie && 'aspect-[2/3]',
         )}
       >
-        <Image
+        <ImageHolder
           src={imgUrl}
           alt={`${name}'s piture`}
           width={movie ? 150 : 337.5}
           height={225}
-          overrideSrc={`/${name}.jpg`}
-          placeholder='blur'
-          blurDataURL={await getBase64(imgUrl)}
-          className='object-cover'
+          overrideSrc={`/${name}`}
         />
       </Link>
       <h2

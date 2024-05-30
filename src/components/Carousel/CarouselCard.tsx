@@ -1,6 +1,5 @@
-import { getBase64 } from '@/lib/helpers';
-import Image from 'next/image';
 import Link from 'next/link';
+import ImageHolder from '../ui/ImageHolder';
 
 export default async function CarouselCard({
   imgUrl,
@@ -19,15 +18,12 @@ export default async function CarouselCard({
         href={`/film/${id}`}
         className='aspect-[2/3] select-none overflow-hidden rounded-lg shadow-md'
       >
-        <Image
+        <ImageHolder
           src={imgUrl}
           alt={name}
           width={200}
           height={300}
-          overrideSrc={`/${name}.jpg`}
-          placeholder='blur'
-          blurDataURL={await getBase64(imgUrl)}
-          className='object-cover'
+          overrideSrc={`/${name}`}
         />
       </Link>
       <h2 className='text-xm inline-block truncate text-left font-semibold'>

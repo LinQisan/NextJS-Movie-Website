@@ -3,6 +3,7 @@ import Image from 'next/image';
 import { StarLogo } from './StarLogo';
 import { Badge } from '../ui/badge';
 import { YCarousel } from '../Carousel/YCarousel';
+import ImageHolder from '../ui/ImageHolder';
 
 type BaseCrew = {
   id: number;
@@ -40,27 +41,19 @@ export default function CrewList({
   media: 'tv' | 'movie';
 }) {
   return data.map((crewMember) => {
-    if (media === 'movie') {
-      const movieCastMember = crewMember as MovieCrew;
-      return (
-        <Crew
-          key={movieCastMember.id}
-          name={movieCastMember.name}
-          profile_path={movieCastMember.profile_path}
-          jobs={movieCastMember.job}
-        />
-      );
-    } else {
-      const tvCastMember = crewMember as TVCrew;
-      return (
-        <Crew
-          key={tvCastMember.id}
-          name={tvCastMember.name}
-          profile_path={tvCastMember.profile_path}
-          jobs={tvCastMember.jobs}
-        />
-      );
-    }
+    const job =
+      media === 'tv'
+        ? (crewMember as TVCrew).jobs
+        : (crewMember as MovieCrew).job;
+
+    return (
+      <Crew
+        key={crewMember.id}
+        name={crewMember.name}
+        profile_path={crewMember.profile_path}
+        jobs={job}
+      />
+    );
   });
 }
 
@@ -69,12 +62,12 @@ function Crew({ name, profile_path, jobs }: CrewProps) {
     <div className='flex gap-2 pl-2'>
       <div className='flex aspect-[2/3] h-[80px] w-[70px] items-center justify-center overflow-hidden rounded-lg border-2'>
         {profile_path ? (
-          <Image
+          <ImageHolder
             src={`https://media.themoviedb.org/t/p/w276_and_h350_face${profile_path}`}
             alt={`${name}'s Photos`}
             width={70}
             height={70}
-            className='object-cover'
+          overrideSrc={`/${name}`}
           />
         ) : (
           <StarLogo />

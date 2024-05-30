@@ -1,19 +1,56 @@
 import Image from 'next/image';
-import { Badge } from '../ui/badge';
 
-interface data {
+import { Badge } from '../ui/badge';
+import { StarLogo } from './StarLogo';
+
+type BaseCast = {
+  id: number;
+  name: string;
+  profile_path?: string;
+  known_for_department: string;
+};
+
+type TVCast = BaseCast & {
+  roles: { character: string }[];
+};
+
+type MovieCast = BaseCast & {
+  character: string;
+};
+
+type CastProps = {
   department: string;
   name: string;
+  profile_path?: string;
   character: string;
-  profile_path: string | null;
+};
+
+export default function CastList({
+  data,
+  media,
+}: {
+  data: TVCast[] | MovieCast[];
+  media: 'tv' | 'movie';
+}) {
+  return data.map((castMember) => {
+    const character =
+      media === 'tv'
+        ? (castMember as TVCast).roles[0].character
+        : (castMember as MovieCast).character;
+
+    return (
+      <Cast
+        key={castMember.id}
+        department={castMember.known_for_department}
+        name={castMember.name}
+        profile_path={castMember.profile_path}
+        character={character}
+      />
+    );
+  });
 }
 
-export default function Cast({
-  department,
-  name,
-  character,
-  profile_path,
-}: data) {
+function Cast({ department, name, character, profile_path }: CastProps) {
   return (
     <div className='flex gap-2 pl-2'>
       <div className='flex aspect-[2/3] h-[80px] w-[70px] items-center justify-center overflow-hidden rounded-lg border-2'>
@@ -26,19 +63,7 @@ export default function Cast({
             className='object-cover'
           />
         ) : (
-          <svg
-            xmlns='http://www.w3.org/2000/svg'
-            viewBox='0 0 24 24'
-            stroke='black'
-            fill='none'
-            className='size-10'
-          >
-            <path
-              fillRule='evenodd'
-              d='M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.006 5.404.434c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.434 2.082-5.005Z'
-              clipRule='evenodd'
-            />
-          </svg>
+          <StarLogo />
         )}
       </div>
       <div className='flex flex-col justify-between'>

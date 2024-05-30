@@ -1,22 +1,22 @@
-import Crew from '@/components/Crew/Crew';
-import { fetchMovieDetails } from '@/lib/data';
+import { Suspense } from 'react';
+import { Metadata } from 'next';
 import Image from 'next/image';
 
-import Cast from '@/components/Cast/Cast';
 import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
-import { Card, CardTitle } from '@/components/ui/card';
+
+import Credits from '@/components/Credits/Credits';
+import { cn } from '@/lib/utils';
 import { getBase64 } from '@/lib/helpers';
-import { Metadata } from 'next';
+
+import { getMovieDetails } from '@/lib/data';
 
 export async function generateMetadata({
   params,
 }: {
   params: { id: string };
 }): Promise<Metadata> {
-  const data = await fetchMovieDetails(params.id);
+  const data = await getMovieDetails(params.id);
 
   return {
     title: data.title,
@@ -29,7 +29,7 @@ export async function generateMetadata({
 }
 
 export default async function Page({ params }: { params: { id: string } }) {
-  const data = await fetchMovieDetails(params.id);
+  const data = await getMovieDetails(params.id);
 
   return (
     <div className='mx-auto flex max-w-fit flex-col justify-center gap-2 '>
@@ -89,55 +89,9 @@ export default async function Page({ params }: { params: { id: string } }) {
           </Badge>
         ))}
       </div>
-
-      <Tabs defaultValue='cast'>
-        <TabsList className='w-full'>
-          <TabsTrigger className='w-1/2' value='cast'>
-            Cast
-          </TabsTrigger>
-          <TabsTrigger className='w-1/2' value='crew'>
-            Crew
-          </TabsTrigger>
-        </TabsList>
-        <TabsContent value='cast'>
-          <Card className='w-full '>
-            <div
-              className='flex h-64 w-[380px] flex-col gap-4 
-            overflow-y-auto           
-            scroll-smooth md:w-[600px]'
-            >
-              {data.credits.cast.map((i: any) => (
-                <Cast
-                  key={i.id}
-                  department={i.known_for_department}
-                  name={i.name}
-                  profile_path={i.profile_path}
-                  character={i.character}
-                />
-              ))}
-            </div>
-          </Card>
-        </TabsContent>
-        <TabsContent value='crew'>
-          <Card className='w-full'>
-            <div
-              className='flex h-64 w-[380px] flex-col gap-4 
-            overflow-y-auto           
-            scroll-smooth md:w-[600px]'
-            >
-              {data.credits.crew.map((i: any) => (
-                <Crew
-                  key={i.id}
-                  id={i.id}
-                  name={i.name}
-                  profile_path={i.profile_path}
-                  job={i.job}
-                />
-              ))}
-            </div>
-          </Card>
-        </TabsContent>
-      </Tabs>
+      <Suspense>
+        <Credits id={params.id} media='movie' />
+      </Suspense>
 
       <Separator />
       <div className='flex justify-between'>
@@ -155,20 +109,18 @@ export default async function Page({ params }: { params: { id: string } }) {
         <div className='self-end text-left'>
           <p className={cn('font-mono text-sm', { hidden: !data.revenue })}>
             Revenue:{' '}
-            {data.revenue.toLocaleString('en-US', {
+            {data.revenue?.toLocaleString('en-US', {
               style: 'currency',
               currency: 'USD',
               minimumFractionDigits: 0,
               maximumFractionDigits: 0,
             })}
           </p>
-          <p
-            className={cn('font-mono text-sm', {
-              hidden: !data.revenue || !data.budget,
-            })}
-          >
-            Revenue/Budget: {((data.revenue / data.budget) * 100).toFixed(0)}%
-          </p>
+          {data.revenue && data.budget && (
+            <p className={'font-mono text-sm'}>
+              Revenue/Budget: {((data.revenue / data.budget) * 100).toFixed(0)}%
+            </p>
+          )}
         </div>
       </div>
     </div>

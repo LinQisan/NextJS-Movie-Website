@@ -1,14 +1,70 @@
 import Image from 'next/image';
+
+import { StarLogo } from './StarLogo';
 import { Badge } from '../ui/badge';
 import { YCarousel } from '../Carousel/YCarousel';
-interface data {
+
+type BaseCrew = {
   id: number;
   name: string;
-  profile_path: string | null;
-  job: string | [];
+  profile_path?: string;
+};
+
+type MovieCrew = BaseCrew & {
+  job: string;
+};
+
+type TVCrew = BaseCrew & {
+  jobs: {
+    credit_id: string;
+    job: string;
+  }[];
+};
+
+type CrewProps = {
+  name: string;
+  profile_path?: string;
+  jobs:
+    | {
+        credit_id: string;
+        job: string;
+      }[]
+    | string;
+};
+
+export default function CrewList({
+  data,
+  media,
+}: {
+  data: MovieCrew[] | TVCrew[];
+  media: 'tv' | 'movie';
+}) {
+  return data.map((crewMember) => {
+    if (media === 'movie') {
+      const movieCastMember = crewMember as MovieCrew;
+      return (
+        <Crew
+          key={movieCastMember.id}
+          name={movieCastMember.name}
+          profile_path={movieCastMember.profile_path}
+          jobs={movieCastMember.job}
+        />
+      );
+    } else {
+      const tvCastMember = crewMember as TVCrew;
+      return (
+        <Crew
+          key={tvCastMember.id}
+          name={tvCastMember.name}
+          profile_path={tvCastMember.profile_path}
+          jobs={tvCastMember.jobs}
+        />
+      );
+    }
+  });
 }
 
-export default function Crew({ id, name, profile_path, job }: data) {
+function Crew({ name, profile_path, jobs }: CrewProps) {
   return (
     <div className='flex gap-2 pl-2'>
       <div className='flex aspect-[2/3] h-[80px] w-[70px] items-center justify-center overflow-hidden rounded-lg border-2'>
@@ -21,29 +77,17 @@ export default function Crew({ id, name, profile_path, job }: data) {
             className='object-cover'
           />
         ) : (
-          <svg
-            xmlns='http://www.w3.org/2000/svg'
-            viewBox='0 0 24 24'
-            stroke='black'
-            fill='none'
-            className='size-10'
-          >
-            <path
-              fillRule='evenodd'
-              d='M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.006 5.404.434c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.434 2.082-5.005Z'
-              clipRule='evenodd'
-            />
-          </svg>
+          <StarLogo />
         )}
       </div>
       <div>
-        {typeof job === 'string' ? (
+        {typeof jobs === 'string' ? (
           <Badge className='mt-2 w-fit select-none text-clip text-nowrap rounded-md bg-zinc-950 px-1 py-0 text-center font-mono text-xs font-light text-white hover:bg-zinc-900'>
-            {job}
+            {jobs}
           </Badge>
         ) : (
           <YCarousel>
-            {job.map((i: any) => (
+            {jobs.map((i: any) => (
               <div key={i.credit_id} className='min-w-0 flex-none'>
                 <Badge className='mt-2 w-fit select-none text-clip text-nowrap rounded-md bg-zinc-950 px-1 py-0 text-center font-mono text-xs font-light text-white hover:bg-zinc-900'>
                   {i.job}
@@ -52,7 +96,6 @@ export default function Crew({ id, name, profile_path, job }: data) {
             ))}
           </YCarousel>
         )}
-
         <h2 className='truncate'>{name}</h2>
       </div>
     </div>

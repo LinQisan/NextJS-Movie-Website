@@ -1,16 +1,16 @@
-import SeasonsLayout from '@/components/SeasonSelect/SeasonsLayout';
-import { Badge } from '@/components/ui/badge';
-import { TV, tvDetail, fetchTVDetails } from '@/lib/data';
+import { Suspense } from 'react';
+import { Metadata } from 'next';
+import Image from 'next/image';
+
 import { getBase64 } from '@/lib/helpers';
 import { cn } from '@/lib/utils';
-import Image from 'next/image';
-import Crew from '@/components/Crew/Crew';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import Cast from '@/components/Cast/Cast';
-import { Card } from '@/components/ui/card';
+import { fetchTVDetails } from '@/lib/data';
+
+import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Metadata } from 'next';
-import { Suspense } from 'react';
+
+import SeasonsLayout from '@/components/SeasonSelect/SeasonsLayout';
+import Credits from '@/components/Credits/Credits';
 
 export async function generateMetadata({
   params,
@@ -29,7 +29,7 @@ export async function generateMetadata({
 }
 
 export default async function Page({ params }: { params: { id: string } }) {
-  const data: tvDetail = await fetchTVDetails(params.id);
+  const data = await fetchTVDetails(params.id);
 
   return (
     <div className='mx-auto flex max-w-fit flex-col justify-center gap-2 '>
@@ -104,54 +104,9 @@ export default async function Page({ params }: { params: { id: string } }) {
           </Badge>
         ))}
       </div>
-      <Tabs defaultValue='cast'>
-        <TabsList className='w-full'>
-          <TabsTrigger className='w-1/2' value='cast'>
-            Cast
-          </TabsTrigger>
-          <TabsTrigger className='w-1/2' value='crew'>
-            Crew
-          </TabsTrigger>
-        </TabsList>
-        <TabsContent value='cast'>
-          <Card className='w-full '>
-            <div
-              className='flex h-64 w-[380px] flex-col gap-4 
-            overflow-y-auto           
-            scroll-smooth md:w-[600px]'
-            >
-              {data.aggregate_credits.cast.map((i: any) => (
-                <Cast
-                  key={i.id}
-                  department={i.known_for_department}
-                  name={i.name}
-                  profile_path={i.profile_path}
-                  character={i.character}
-                />
-              ))}
-            </div>
-          </Card>
-        </TabsContent>
-        <TabsContent value='crew'>
-          <Card className='w-full'>
-            <div
-              className='flex h-64 w-[380px] flex-col gap-4 
-            overflow-y-auto           
-            scroll-smooth md:w-[600px]'
-            >
-              {data.aggregate_credits.crew.map((i: any) => (
-                <Crew
-                  key={i.id}
-                  id={i.id}
-                  name={i.name}
-                  profile_path={i.profile_path}
-                  job={i.jobs}
-                />
-              ))}
-            </div>
-          </Card>
-        </TabsContent>
-      </Tabs>
+      <Suspense>
+        <Credits id={params.id} media='tv' />
+      </Suspense>
       <Separator />
       <Suspense>
         <SeasonsLayout id={params.id} seasons={data.seasons}></SeasonsLayout>

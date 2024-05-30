@@ -36,7 +36,7 @@ export type TV = {
 };
 
 export type tvDetail = {
-  backdrop_path: string;
+  backdrop_path?: string;
   first_air_date: string;
   genres: {
     id: number;
@@ -58,21 +58,39 @@ export type tvDetail = {
     id: number;
     name: string;
   }[];
-  aggregate_credits: {
-    cast: {
-      id: number;
-      profile_path?: string;
-    }[];
-    crew: {
-      id: number;
-      profile_path?: string;
-      jobs: {
-        credit_id: string;
-        job: string;
+  seasons: season[];
+};
+
+export type MovieDetail = {
+  backdrop_path?: string;
+  release_date: string;
+  genres: {
+    id: number;
+    name: string;
+  }[];
+  id: number;
+  title: string;
+  runtime: number;
+  original_title: string;
+  tagline?: string;
+  release_dates: {
+    results?: {
+      iso_3166_1: string;
+      release_dates: {
+        certification: string;
       }[];
     }[];
   };
-  seasons: season[];
+
+  vote_average: number;
+  overview: string;
+  production_companies: {
+    id: number;
+    name: string;
+  }[];
+  revenue?: number;
+  budget?: number;
+  credits: MovieCredits;
 };
 
 export type season = {
@@ -81,14 +99,43 @@ export type season = {
   season_number: number;
 };
 
+export type TVCredits = {
+  cast: {
+    id: number;
+    name: string;
+    profile_path?: string;
+    known_for_department: string;
+    roles: { character: string }[];
+  }[];
+  crew: {
+    id: number;
+    name: string;
+    profile_path?: string;
+    jobs: {
+      credit_id: string;
+      job: string;
+    }[];
+  }[];
+};
+
+export type MovieCredits = {
+  cast: {
+    id: number;
+    name: string;
+    profile_path?: string;
+    known_for_department: string;
+    character: string;
+  }[];
+  crew: {
+    id: number;
+    name: string;
+    profile_path?: string;
+    job: string;
+  }[];
+};
+
 export type Media = Movie | TV;
 
-interface Recents {
-  id: number;
-  title: string;
-  media_type: string;
-  release_date?: string;
-}
 const options = {
   method: 'GET',
   headers: {
@@ -130,7 +177,6 @@ export async function fetchMoviesName(key: string) {
       page++;
       return allData;
     } catch (error) {
-      console.error('Database Error:', error);
       throw new Error('Failed to fetch movies.');
     }
   }
@@ -169,17 +215,17 @@ export async function fetchTVName(key: string) {
   }
 }
 
-export async function fetchMovieDetails(id: string) {
+export async function getMovieDetails(id: string) {
   try {
     const res = await fetch(
       `https://api.themoviedb.org/3/movie/${id}?append_to_response=release_dates%2Ccredits&language=zh-CN`,
       options,
     );
-    const data = await res.json();
+    const data: MovieDetail = await res.json();
 
     return data;
   } catch (err) {
-    console.error(err);
+    throw new Error('Failed to fetch Movie Detail data');
   }
 }
 
@@ -202,32 +248,28 @@ export async function getSeasonDetails(id: string, seasons: season[]) {
 
 export async function fetchTVDetails(id: string) {
   try {
-    const detailsRes = await fetch(
-      `https://api.themoviedb.org/3/tv/${id}?append_to_response=content_ratings,aggregate_credits&language=zh-CN`,
+    const res = await fetch(
+      `https://api.themoviedb.org/3/tv/${id}?append_to_response=content_ratings&language=zh-CN`,
       options,
     );
-    const tvDetails = await detailsRes.json();
+    const data: tvDetail = await res.json();
 
-    return {
-      ...tvDetails,
-    };
+    return data;
   } catch (err) {
-    console.error(err);
+    throw new Error('Failed to fetch tv Detail data');
   }
 }
 
-export async function fetchRecent() {
+export async function getTVCredits(id: string) {
   try {
-    const res = await fetch(
-      'https://api.themoviedb.org/3/trending/all/day?language=zh-CN',
+    const detailsRes = await fetch(
+      `https://api.themoviedb.org/3/tv/${id}/aggregate_credits?language=zh-CN`,
       options,
     );
-    const { results } = await res.json();
-    const movie = results.filter((res: Recents) => res.media_type === 'movie');
-    const tv = results.filter((res: Recents) => res.media_type === 'tv');
-    return { movie, tv };
+    const data: TVCredits = await detailsRes.json();
+
+    return data;
   } catch (err) {
-    console.error(err);
-    return { movie: [], tv: [] };
+    throw new Error('Failed to fetch credits data');
   }
 }

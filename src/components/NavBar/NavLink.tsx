@@ -1,52 +1,36 @@
-// NavLink.tsx
-import React from 'react';
+'use client';
+
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+import { I18nText } from '../I18nProvider';
 
 const NavLink = ({ pathname }: { pathname: null | string }) => {
-  const [hoveredLink, setHoveredLink] = React.useState<string | null>(null);
-  const id = React.useId();
-
   const links = [
-    { label: '近期', href: '/' },
-    { label: '电影', href: '/film' },
-    { label: '电视剧', href: '/tv' },
+    { messageKey: 'nav.home' as const, href: '/' },
+    { messageKey: 'nav.movies' as const, href: '/film' },
+    { messageKey: 'nav.tv' as const, href: '/tv' },
     // { label: '我的', href: '/user' },
   ];
 
   return (
-    <div className='flex gap-4' onMouseLeave={() => setHoveredLink(null)}>
-      {links.map(({ label, href }) => {
-        const isActive = pathname === href;
-        const isHovered = hoveredLink === href;
+    <div className='flex min-w-0 flex-1 justify-center gap-0.5 sm:gap-1 md:gap-2'>
+      {links.map(({ messageKey, href }) => {
+        const isActive =
+          href === '/'
+            ? pathname === href
+            : pathname === href || pathname?.startsWith(`${href}/`);
         return (
-          <div
+          <Link
             key={href}
-            className='flex flex-col whitespace-nowrap rounded-full px-4 py-2 text-center text-sm font-semibold transition-colors md:text-2xl'
+            href={href}
+            className={`nav-theme-text group flex shrink-0 flex-col whitespace-nowrap rounded-full px-1.5 py-2 text-center text-xs font-semibold transition-colors sm:px-2 sm:text-sm md:px-2 md:py-3 md:text-lg ${isActive ? 'nav-theme-active' : ''}`}
+            aria-current={isActive ? 'page' : undefined}
           >
-            {isHovered || isActive ? (
-              <motion.div
-                layoutId={id}
-                className='rounded-full'
-                initial={{ borderRadius: 9999 }}
-                style={{
-                  backgroundColor: 'white',
-                  borderRadius: 9999,
-                  padding: 2,
-                }}
-                transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-              />
-            ) : (
-              <div className='rounded-full bg-black p-0.5'></div>
-            )}
-            <Link
-              href={href}
-              className={'text-white'}
-              onMouseEnter={() => setHoveredLink(href)}
-            >
-              {label}
-            </Link>
-          </div>
+            <span
+              className={`h-1 rounded-full transition-colors ${isActive ? 'nav-theme-indicator' : 'nav-theme-hover-indicator'}`}
+              aria-hidden='true'
+            />
+            <I18nText messageKey={messageKey} />
+          </Link>
         );
       })}
     </div>

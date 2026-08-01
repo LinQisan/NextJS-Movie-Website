@@ -1,6 +1,10 @@
+'use client';
+
 import Link from 'next/link';
+import * as m from 'motion/react-m';
 
 import ImageHolder from '../ui/ImageHolder';
+import { useI18n } from '../I18nProvider';
 
 import { cn } from '@/lib/utils';
 
@@ -12,17 +16,16 @@ type Media = {
   movie?: boolean;
 };
 
-export default async function MediaCard({
-  imgUrl,
-  name,
-  id,
-  year,
-  movie,
-}: Media) {
+export default function MediaCard({ imgUrl, name, id, year, movie }: Media) {
+  const { t } = useI18n();
+
   return (
-    <div
+    <m.div
+      whileHover={{ y: -4 }}
+      whileTap={{ scale: 0.985 }}
+      transition={{ type: 'spring', stiffness: 420, damping: 28 }}
       className={cn(
-        'flex w-[337.5px] flex-col gap-1',
+        'mx-auto flex w-full max-w-[400px] flex-col gap-1.5 will-change-transform',
         movie && 'w-[100px] md:w-[150px]',
       )}
     >
@@ -35,15 +38,14 @@ export default async function MediaCard({
       >
         <ImageHolder
           src={imgUrl}
-          alt={`${name}'s piture`}
-          width={movie ? 150 : 337.5}
+          alt={t('media.backdropAlt', { name })}
+          width={movie ? 150 : 400}
           height={225}
-          overrideSrc={`/${name}`}
         />
       </Link>
       <h2
         className={cn(
-          'text-xm inline-block truncate text-center font-semibold',
+          'inline-block truncate text-left text-base font-semibold',
           movie && 'text-left',
         )}
       >
@@ -54,6 +56,6 @@ export default async function MediaCard({
           {year}
         </p>
       )}
-    </div>
+    </m.div>
   );
 }

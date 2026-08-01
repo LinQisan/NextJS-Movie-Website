@@ -1,131 +1,385 @@
-import { Suspense } from 'react';
+import { Suspense, type ReactNode } from 'react';
 import { Metadata } from 'next';
+import { notFound } from 'next/navigation';
 
-import { cn } from '@/lib/utils';
-import { fetchTVDetails } from '@/lib/data';
-
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-
-import SeasonsSelect from '@/components/SeasonSelect/SeasonsSelect';
 import Credits from '@/components/Credits/Credits';
-import ImageHolder from '@/components/ui/ImageHolder';
+import DetailTheme from '@/components/DetailTheme/DetailTheme';
 import CreditsLoading from '@/components/Loading/CreditsLoading';
+import ExternalRatings, {
+  type ExternalRatingsProps,
+} from '@/components/DetailExternalInfo/ExternalRatings';
+import HeroRating from '@/components/DetailExternalInfo/HeroRating';
+import { I18nText } from '@/components/I18nProvider';
+import { Reveal } from '@/components/Motion/Reveal';
+import SeasonsSelect from '@/components/SeasonSelect/SeasonsSelect';
+import ImageHolder from '@/components/ui/ImageHolder';
+
+import {
+  fetchTVDetails,
+  getTranslationTitles,
+  TMDBError,
+  type TVDetail,
+} from '@/lib/data';
 
 export async function generateMetadata({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }): Promise<Metadata> {
-  const data = await fetchTVDetails(params.id);
+  const { id } = await params;
+  const data = await loadTV(id);
+
   return {
     title: data.name,
     openGraph: {
       title: data.name,
-      description: data.overview.slice(0, 5),
-      images: [`https://image.tmdb.org/t/p/original${data.backdrop_path}`],
+      description: data.overview.slice(0, 160),
+      images: data.backdrop_path
+        ? [`https://image.tmdb.org/t/p/original${data.backdrop_path}`]
+        : [],
     },
   };
 }
 
-export default async function Page({ params }: { params: { id: string } }) {
-  const data = await fetchTVDetails(params.id);
+export default async function Page({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  const data = await loadTV(id);
+  const certification = getCertificationByCountry(
+    data.content_ratings.results,
+    'US',
+  );
+  const episodeCount = data.seasons.reduce(
+    (total, season) => total + season.episode_count,
+    0,
+  );
+  const backdropUrl = data.backdrop_path
+    ? `https://image.tmdb.org/t/p/original${data.backdrop_path}`
+    : null;
+  const ratingProps = {
+    imdbId: data.external_ids?.imdb_id,
+    tmdbId: data.id,
+    tmdbScore: data.vote_average,
+    tmdbVotes: data.vote_count,
+    title: data.name,
+    originalTitle: data.original_name,
+    titles: getTranslationTitles(data.translations, 'name'),
+    year: data.first_air_date?.slice(0, 4),
+    doubanKey: `tv:${data.id}`,
+    media: 'tv',
+  } satisfies ExternalRatingsProps;
 
   return (
-    <div className='mx-auto flex max-w-fit flex-col justify-center gap-2 '>
-      {data.backdrop_path && (
-        <div className='relative max-w-fit'>
-          <div className='aspect-video w-[380px] select-none overflow-hidden rounded-lg shadow-md md:w-[600px]'>
-            <ImageHolder
-              src={`https://image.tmdb.org/t/p/original${data.backdrop_path}`}
-              alt={`${data.name}'s backdrop`}
-              width={600}
-              height={300}
-              overrideSrc={`/${data.name}.jpg`}
-              priority={true}
-            />
-          </div>
-          <div className='absolute bottom-0 left-0 w-full rounded p-2 text-white backdrop-blur-md backdrop-brightness-50 backdrop-filter'>
-            <h2
-              className={cn('font-semibold', {
-                hidden: data.original_name === data.name,
-              })}
-            >
-              {data.original_name}
-            </h2>
-            <p className='text-sm'>{data.tagline}</p>
-          </div>
-        </div>
-      )}
-      <div className='flex flex-col gap-2 text-left'>
-        <h2 className='w-[380px] text-justify text-4xl font-semibold md:w-[600px]'>
-          {data.name}
-        </h2>
-        <div className='flex gap-2'>
-          <Badge
-            variant='secondary'
-            className={cn(
-              'w-fit select-none rounded-md bg-zinc-950 px-1 font-mono text-xs font-light text-white hover:bg-zinc-900',
-              {
-                hidden: !getCertificationByCountry(
-                  data.content_ratings.results,
-                  'US',
-                ),
-              },
-            )}
-          >
-            {getCertificationByCountry(data.content_ratings.results, 'US')}
-          </Badge>
-          <p>{data.first_air_date.slice(0, 4)}</p>
-          <Badge
-            variant='secondary'
-            className={cn(
-              'w-fit select-none rounded-md bg-gray-200 px-1 font-mono text-xs font-light text-black hover:bg-gray-100',
-            )}
-          >
-            <span className='font-bold'>{data.seasons.length}</span>
-            &nbsp;seasons
-          </Badge>
-          <p>{data.vote_average.toFixed(1)}</p>
-        </div>
+    <DetailTheme imageUrl={backdropUrl}>
+      <div className='relative mx-auto w-full max-w-6xl'>
+        <Atmosphere backdropUrl={backdropUrl} />
 
-        <p className='w-[380px] text-justify font-light md:w-[600px]'>
-          {data.overview}
-        </p>
-      </div>
-      <div className='flex gap-2'>
-        {data.genres.map((i: any) => (
-          <Badge variant='outline' key={i.id}>
-            {i.name}
-          </Badge>
-        ))}
-      </div>
-      <Suspense fallback={<CreditsLoading />}>
-        <Credits id={params.id} media='tv' />
-      </Suspense>
-      <Separator />
-      <Suspense>
-        <SeasonsSelect id={params.id} seasons={data.seasons}></SeasonsSelect>
-      </Suspense>
-      {data.production_companies.length > 0 && <Separator />}
-      <div className='flex flex-col gap-2'>
-        {data.production_companies.map((i: any) => (
-          <Badge
-            key={i.id}
-            className='w-fit rounded-md bg-zinc-950 px-1 text-sm text-white hover:bg-zinc-900'
+        <Reveal amount={0.08}>
+          <TVHero
+            data={data}
+            certification={certification}
+            episodeCount={episodeCount}
+            backdropUrl={backdropUrl}
+            ratingProps={ratingProps}
+          />
+        </Reveal>
+
+        <div className='mt-10 grid min-w-0 grid-cols-1 gap-12 lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-0'>
+          <main className='order-2 min-w-0 space-y-12 lg:order-1 lg:col-start-1 lg:row-start-1 lg:pr-12'>
+            <Reveal>
+              <section className='border-t border-zinc-200/80 pt-8'>
+                <SectionHeading>
+                  <I18nText messageKey='detail.overview' />
+                </SectionHeading>
+                <p className='mt-4 max-w-[68ch] text-[15px] leading-7 text-zinc-600'>
+                  {data.overview || <I18nText messageKey='detail.noOverview' />}
+                </p>
+              </section>
+            </Reveal>
+
+            <Reveal>
+              <Suspense fallback={<CreditsLoading />}>
+                <Credits id={id} media='tv' />
+              </Suspense>
+            </Reveal>
+
+            <Reveal>
+              <Suspense>
+                <SeasonsSelect id={id} seasons={data.seasons} />
+              </Suspense>
+            </Reveal>
+          </main>
+
+          <Reveal
+            className='order-1 min-w-0 lg:order-2 lg:col-start-2 lg:row-start-1 lg:border-l lg:border-zinc-200/80 lg:pl-12'
+            delay={0.08}
           >
-            {i.name}
-          </Badge>
-        ))}
+            <TVInfoSidebar
+              data={data}
+              certification={certification}
+              episodeCount={episodeCount}
+              ratingProps={ratingProps}
+            />
+          </Reveal>
+        </div>
       </div>
+    </DetailTheme>
+  );
+}
+
+function Atmosphere({ backdropUrl }: { backdropUrl: string | null }) {
+  return (
+    <div
+      className='pointer-events-none absolute left-1/2 top-[-8rem] -z-10 h-[620px] w-screen -translate-x-1/2 overflow-hidden'
+      aria-hidden='true'
+    >
+      {backdropUrl ? (
+        <div
+          className='absolute inset-0 scale-110 bg-cover bg-center opacity-25 blur-3xl saturate-[0.55]'
+          style={{ backgroundImage: `url("${backdropUrl}")` }}
+        />
+      ) : (
+        <div className='absolute inset-0 bg-[radial-gradient(circle_at_50%_10%,rgb(100_116_139_/_0.2),transparent_55%)]' />
+      )}
+      <div className='detail-atmosphere-fade absolute inset-0' />
     </div>
   );
 }
 
-function getCertificationByCountry(data: any, isoCode: string) {
+function TVHero({
+  data,
+  certification,
+  episodeCount,
+  backdropUrl,
+  ratingProps,
+}: {
+  data: TVDetail;
+  certification: string | null;
+  episodeCount: number;
+  backdropUrl: string | null;
+  ratingProps: ExternalRatingsProps;
+}) {
+  const year = data.first_air_date?.slice(0, 4);
+
+  return (
+    <section className='relative isolate overflow-hidden'>
+      <div className='relative aspect-[4/3] sm:aspect-[2/1] lg:aspect-[2.15/1]'>
+        {backdropUrl ? (
+          <div className='absolute inset-0 select-none'>
+            <ImageHolder
+              src={backdropUrl}
+              alt={`${data.name}'s backdrop`}
+              width={1200}
+              height={558}
+              priority={true}
+            />
+          </div>
+        ) : (
+          <div className='absolute inset-0 bg-[radial-gradient(circle_at_75%_15%,rgb(100_116_139_/_0.45),transparent_45%),linear-gradient(135deg,#18181b,#09090b)]' />
+        )}
+
+        <div className='absolute inset-0 bg-gradient-to-t from-black via-black/70 to-black/5' />
+        <div className='absolute inset-x-0 bottom-0 p-6 sm:p-10'>
+          <div className='w-full min-w-0 max-w-4xl'>
+            {data.original_name !== data.name && (
+              <p className='text-[11px] font-semibold uppercase tracking-[0.2em] text-white/60'>
+                <I18nText messageKey='detail.originalTitle' />:{' '}
+                {data.original_name}
+              </p>
+            )}
+            <h1 className='mt-2 max-w-4xl break-words text-4xl font-semibold leading-[0.98] tracking-[-0.04em] text-white sm:text-6xl lg:text-7xl'>
+              {data.name}
+            </h1>
+            {data.tagline && (
+              <p className='mt-3 line-clamp-2 max-w-2xl text-sm leading-6 text-white/75 sm:text-base'>
+                {data.tagline}
+              </p>
+            )}
+
+            <div className='mt-5 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs font-medium text-white/80'>
+              <span>
+                {year || <I18nText messageKey='detail.unknownDate' />}
+              </span>
+              <MetaDivider />
+              <span>
+                {data.seasons.length} <I18nText messageKey='detail.seasons' />
+              </span>
+              <MetaDivider />
+              <span>
+                {episodeCount} <I18nText messageKey='detail.episodeCount' />
+              </span>
+              {certification && (
+                <>
+                  <MetaDivider />
+                  <span className='border border-white/35 px-1.5 py-0.5 text-white'>
+                    {certification}
+                  </span>
+                </>
+              )}
+              <MetaDivider />
+              <HeroRating {...ratingProps} />
+            </div>
+
+            <div className='mt-3 flex flex-wrap items-center gap-x-2 text-xs text-white/70'>
+              {data.genres.map((genre, index) => (
+                <span key={genre.id} className='inline-flex items-center gap-2'>
+                  {index > 0 && (
+                    <span className='text-white/35' aria-hidden='true'>
+                      /
+                    </span>
+                  )}
+                  {genre.name}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function TVInfoSidebar({
+  data,
+  certification,
+  episodeCount,
+  ratingProps,
+}: {
+  data: TVDetail;
+  certification: string | null;
+  episodeCount: number;
+  ratingProps: ExternalRatingsProps;
+}) {
+  return (
+    <aside className='space-y-10 lg:sticky lg:top-6'>
+      <ExternalRatings {...ratingProps} />
+
+      <section>
+        <SectionEyebrow>
+          <I18nText messageKey='detail.seriesDetails' />
+        </SectionEyebrow>
+
+        <dl className='mt-5 grid grid-cols-2 gap-x-5 gap-y-5'>
+          <InfoStat
+            className='border-b border-zinc-200/70 pb-4'
+            label={<I18nText messageKey='detail.firstAirDate' />}
+            value={
+              data.first_air_date || (
+                <I18nText messageKey='detail.unknownDate' />
+              )
+            }
+          />
+          <InfoStat
+            className='border-b border-zinc-200/70 pb-4'
+            label={<I18nText messageKey='detail.seasons' />}
+            value={`${data.seasons.length}`}
+          />
+          <InfoStat
+            className='border-b border-zinc-200/70 pb-4'
+            label={<I18nText messageKey='detail.episodeCount' />}
+            value={`${episodeCount}`}
+          />
+          <InfoStat
+            className='border-b border-zinc-200/70 pb-4'
+            label={<I18nText messageKey='detail.certification' />}
+            value={certification || '—'}
+          />
+        </dl>
+
+        <div className='mt-8 border-t border-zinc-200/70 pt-6'>
+          <SectionEyebrow>
+            <I18nText messageKey='detail.genres' />
+          </SectionEyebrow>
+          <p className='mt-3 text-sm leading-6 text-zinc-700'>
+            {data.genres.map((genre, index) => (
+              <span key={genre.id}>
+                {index > 0 && <span className='mx-2 text-zinc-300'>/</span>}
+                {genre.name}
+              </span>
+            ))}
+          </p>
+        </div>
+
+        <div className='mt-8 border-t border-zinc-200/70 pt-6'>
+          <SectionEyebrow>
+            <I18nText messageKey='detail.production' />
+          </SectionEyebrow>
+          {data.production_companies.length > 0 ? (
+            <ul className='mt-3 space-y-1.5 text-sm leading-6 text-zinc-700'>
+              {data.production_companies.map((company) => (
+                <li key={company.id}>{company.name}</li>
+              ))}
+            </ul>
+          ) : (
+            <p className='mt-3 text-sm text-zinc-400'>—</p>
+          )}
+        </div>
+      </section>
+    </aside>
+  );
+}
+
+function SectionHeading({ children }: { children: ReactNode }) {
+  return (
+    <h2 className='text-lg font-semibold tracking-[-0.02em] text-zinc-950'>
+      {children}
+    </h2>
+  );
+}
+
+function SectionEyebrow({ children }: { children: ReactNode }) {
+  return (
+    <h2 className='text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-400'>
+      {children}
+    </h2>
+  );
+}
+
+function InfoStat({
+  label,
+  value,
+  className = '',
+}: {
+  label: ReactNode;
+  value: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={`min-w-0 ${className}`}>
+      <dt className='text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-400'>
+        {label}
+      </dt>
+      <dd className='mt-1 truncate text-sm font-medium text-zinc-800'>
+        {value}
+      </dd>
+    </div>
+  );
+}
+
+function MetaDivider() {
+  return <span className='h-3 w-px bg-white/30' aria-hidden='true' />;
+}
+
+async function loadTV(id: string) {
+  try {
+    return await fetchTVDetails(id);
+  } catch (error) {
+    if (error instanceof TMDBError && [400, 404].includes(error.status)) {
+      notFound();
+    }
+    throw error;
+  }
+}
+
+function getCertificationByCountry(
+  data: TVDetail['content_ratings']['results'],
+  isoCode: string,
+) {
   if (!Array.isArray(data) || data.length === 0) {
     return null;
   }
-  const result = data.filter((i: any) => i.iso_3166_1 === isoCode);
-  return result.length > 0 ? result[0].rating : null;
+  return data.find((item) => item.iso_3166_1 === isoCode)?.rating ?? null;
 }

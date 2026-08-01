@@ -1,11 +1,11 @@
 import Search from '@/components/Search/Search';
 
-export default function Page({
+export default async function Page({
   searchParams,
 }: {
-  searchParams?: { query?: string };
+  searchParams: Promise<{ query?: string }>;
 }) {
-  const query = searchParams?.query || '';
+  const { query = '' } = await searchParams;
 
   return <Search query={query} />;
 }

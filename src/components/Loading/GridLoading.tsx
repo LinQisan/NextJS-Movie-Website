@@ -1,10 +1,8 @@
 import { Skeleton } from '../ui/skeleton';
-import TopProgress from '../ui/TopProgress';
 
 export default function GridLoading({ i = 20 }: { i?: number }) {
   return (
     <>
-      <TopProgress />
       {Array.from({ length: i }, (_, index) => (
         <Item key={index} />
       ))}

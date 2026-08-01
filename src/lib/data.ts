@@ -1,14 +1,23 @@
-'use server';
-import { yearDiff } from './utils';
+import 'server-only';
+import { cookies } from 'next/headers';
+import { rankMovies } from './search-ranking';
+import {
+  DEFAULT_LOCALE,
+  LOCALE_COOKIE,
+  localeConfig,
+  localeFromValue,
+} from './i18n';
+
+const TMDB_API_URL = 'https://api.themoviedb.org/3';
 
 type BaseMedia = {
-  backdrop_path?: string;
+  backdrop_path?: string | null;
   genre_ids: number[];
   id: number;
   original_language: string;
   overview: string;
   popularity: number;
-  poster_path: string;
+  poster_path?: string | null;
   vote_average: number;
   vote_count: number;
 };
@@ -17,7 +26,7 @@ export type Movie = BaseMedia & {
   original_title: string;
   release_date: string;
   title: string;
-  video: false;
+  video: boolean;
 };
 
 export type TV = BaseMedia & {
@@ -29,39 +38,47 @@ export type TV = BaseMedia & {
 
 export type Media = Movie | TV;
 
-export type tvDetail = {
-  backdrop_path?: string;
+type Genre = { id: number; name: string };
+type ProductionCompany = { id: number; name: string };
+type TranslationData = {
+  title?: string;
+  name?: string;
+};
+type Translation = {
+  iso_639_1: string;
+  iso_3166_1: string;
+  data: TranslationData;
+};
+export type MediaTranslations = {
+  translations?: Translation[];
+};
+
+export type TVDetail = {
+  backdrop_path?: string | null;
   first_air_date: string;
-  genres: {
-    id: number;
-    name: string;
-  }[];
+  genres: Genre[];
   id: number;
   name: string;
   original_name: string;
   tagline?: string;
   content_ratings: {
-    results?: {
-      iso_3166_1: string;
-      rating: string;
-    }[];
+    results?: { iso_3166_1: string; rating: string }[];
   };
   vote_average: number;
+  vote_count: number;
   overview: string;
-  production_companies: {
-    id: number;
-    name: string;
-  }[];
-  seasons: season[];
+  translations?: MediaTranslations;
+  production_companies: ProductionCompany[];
+  seasons: Season[];
+  external_ids?: {
+    imdb_id?: string | null;
+  };
 };
 
 export type MovieDetail = {
-  backdrop_path?: string;
+  backdrop_path?: string | null;
   release_date: string;
-  genres: {
-    id: number;
-    name: string;
-  }[];
+  genres: Genre[];
   id: number;
   title: string;
   runtime: number;
@@ -70,27 +87,44 @@ export type MovieDetail = {
   release_dates: {
     results?: {
       iso_3166_1: string;
-      release_dates: {
-        certification: string;
-      }[];
+      release_dates: { certification: string }[];
     }[];
   };
-
   vote_average: number;
+  vote_count: number;
   overview: string;
-  production_companies: {
-    id: number;
-    name: string;
-  }[];
+  translations?: MediaTranslations;
+  production_companies: ProductionCompany[];
   revenue?: number;
   budget?: number;
   credits: MovieCredits;
+  external_ids?: {
+    imdb_id?: string | null;
+  };
 };
 
-export type season = {
+export type Season = {
   id: number;
   name: string;
   episode_count: number;
+  season_number: number;
+};
+
+export type Episode = {
+  id: number;
+  air_date: string;
+  episode_number: number;
+  name: string;
+  overview: string;
+  runtime: number | null;
+  season_number: number;
+  vote_average: number;
+};
+
+export type SeasonDetail = {
+  id: number;
+  name: string;
+  episodes: Episode[];
   season_number: number;
 };
 
@@ -98,186 +132,213 @@ export type TVCredits = {
   cast: {
     id: number;
     name: string;
-    profile_path?: string;
+    profile_path?: string | null;
     known_for_department: string;
     roles: { character: string }[];
   }[];
   crew: {
     id: number;
     name: string;
-    profile_path?: string;
-    jobs: {
-      credit_id: string;
-      job: string;
-    }[];
+    profile_path?: string | null;
+    jobs: { credit_id: string; job: string }[];
   }[];
 };
 
 export type MovieCredits = {
   cast: {
+    credit_id: string;
     id: number;
     name: string;
-    profile_path?: string;
+    profile_path?: string | null;
     known_for_department: string;
     character: string;
   }[];
   crew: {
+    credit_id: string;
     id: number;
     name: string;
-    profile_path?: string;
+    profile_path?: string | null;
     job: string;
   }[];
 };
 
-export type SeasonDetail = {
-  id: number;
-  name: string;
-  episodes: {
-    id: number;
-    air_date: string;
-    episode_number: number;
-    name: string;
-    overview: string;
-    runtime: number;
-    vote_average: number;
-  }[];
-  season_number: number;
-}[];
-
-const options = {
-  method: 'GET',
-  headers: {
-    accept: 'application/json',
-    Authorization: `Bearer ${process.env.TMDB_Bearer}`,
-  },
+type TMDBList<T> = {
+  page: number;
+  results: T[];
+  total_pages: number;
 };
 
-export async function getTrending(media: 'movie' | 'tv') {
-  try {
-    const res = await fetch(
-      `https://api.themoviedb.org/3/trending/${media}/week?language=zh-CN`,
-      options,
-    );
-    const { results: data } = await res.json();
+type FetchOptions = {
+  cache?: RequestCache;
+  revalidate?: number;
+  searchParams?: Record<string, string | number | boolean>;
+};
 
-    return data;
-  } catch (err) {
-    console.error(err);
+export class TMDBError extends Error {
+  constructor(
+    message: string,
+    public readonly status = 500,
+  ) {
+    super(message);
+    this.name = 'TMDBError';
   }
 }
 
-// Search Function
-export async function fetchMoviesName(key: string) {
-  let page = 1;
-  const maxPages = 3;
-  let allData: Movie[] = [];
-  while (page <= maxPages) {
-    try {
-      const res = await fetch(
-        `https://api.themoviedb.org/3/search/movie?query=${key}&include_adult=false&page=${page}&language=zh-CN`,
-        options,
-      );
-      const movies = await res.json();
-      if (!movies.results || movies.results.length === 0) {
-        break;
-      }
-      allData = allData.concat(movies.results);
-      page++;
-      return allData;
-    } catch (error) {
-      throw new Error('Failed to fetch movies.');
-    }
+async function tmdbFetch<T>(path: string, options: FetchOptions = {}) {
+  const token = process.env.TMDB_Bearer;
+  if (!token) {
+    throw new TMDBError('缺少 TMDB_Bearer 环境变量。');
   }
 
-  // 根据评分、上映时间、terms进行搜索结果的排序
-  // 关于与terms的相关性可以进一步用一个函数去判断相关性 区分简繁体，返回相似度
-  const calcSortScore = (movie: Movie) => {
-    if (movie.vote_count < 100) {
-      movie.vote_average -= 3;
-    }
-    const nameRelate = movie.original_title === decodeURIComponent(key) ? 1 : 0;
-    return (
-      movie.vote_average + yearDiff(movie.release_date) * 0.01 + nameRelate
-    );
-  };
+  const locale = localeFromValue(
+    (await cookies()).get(LOCALE_COOKIE)?.value ?? DEFAULT_LOCALE,
+  );
 
-  const data = allData
-    .sort((a: Movie, b: Movie) => {
-      return calcSortScore(b) - calcSortScore(a);
-    })
-    .filter((movie: Movie) => calcSortScore(movie) > 2);
+  const url = new URL(`${TMDB_API_URL}${path}`);
+  Object.entries({
+    language: localeConfig[locale].tmdb,
+    ...options.searchParams,
+  }).forEach(([key, value]) => url.searchParams.set(key, String(value)));
 
-  return data;
-}
-
-export async function fetchTVName(key: string) {
-  try {
-    const res = await fetch(
-      `https://api.themoviedb.org/3/search/tv?query=${key}&include_adult=false&page=1&language=zh-CN`,
-      options,
-    );
-    const { results: data } = await res.json();
-    return data;
-  } catch (err) {
-    console.error(err);
-  }
-}
-
-export async function getMovieDetails(id: string) {
-  try {
-    const res = await fetch(
-      `https://api.themoviedb.org/3/movie/${id}?append_to_response=release_dates%2Ccredits&language=zh-CN`,
-      options,
-    );
-    const data: MovieDetail = await res.json();
-
-    return data;
-  } catch (err) {
-    throw new Error('Failed to fetch Movie Detail data');
-  }
-}
-
-export async function getSeasonDetails(id: string, seasons: season[]) {
-  const seasonPromises = seasons.map(async (season: season) => {
-    try {
-      const response = await fetch(
-        `https://api.themoviedb.org/3/tv/${id}/season/${season.season_number}?language=zh-CN`,
-        options,
-      );
-      return await response.json();
-    } catch (err) {
-      throw new Error('Failed to fetch SeasonDetails data');
-    }
+  const response = await fetch(url, {
+    cache: options.cache,
+    headers: {
+      accept: 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    next:
+      options.revalidate === undefined
+        ? undefined
+        : { revalidate: options.revalidate },
   });
-  const data: SeasonDetail = await Promise.all(seasonPromises);
 
-  return data;
+  if (!response.ok) {
+    let reason = response.statusText;
+    try {
+      const body = (await response.json()) as { status_message?: string };
+      reason = body.status_message || reason;
+    } catch {
+      // Keep the HTTP status text when the upstream response is not JSON.
+    }
+    throw new TMDBError(`TMDB 请求失败：${reason}`, response.status);
+  }
+
+  return (await response.json()) as T;
 }
 
-export async function fetchTVDetails(id: string) {
-  try {
-    const res = await fetch(
-      `https://api.themoviedb.org/3/tv/${id}?append_to_response=content_ratings&language=zh-CN`,
-      options,
-    );
-    const data: tvDetail = await res.json();
-
-    return data;
-  } catch (err) {
-    throw new Error('Failed to fetch tv Detail data');
+function numericPathSegment(value: string, label: string) {
+  if (!/^\d+$/.test(value)) {
+    throw new TMDBError(`${label} 必须是非负整数。`, 400);
   }
+  return value;
 }
 
-export async function getTVCredits(id: string) {
-  try {
-    const detailsRes = await fetch(
-      `https://api.themoviedb.org/3/tv/${id}/aggregate_credits?language=zh-CN`,
-      options,
-    );
-    const data: TVCredits = await detailsRes.json();
+function uniqueMediaById<T extends { id: number }>(items: T[]) {
+  return [...new Map(items.map((item) => [item.id, item])).values()];
+}
 
-    return data;
-  } catch (err) {
-    throw new Error('Failed to fetch credits data');
-  }
+export function getTranslationTitles(
+  translations: MediaTranslations | undefined,
+  field: 'title' | 'name',
+) {
+  return [...(translations?.translations ?? [])]
+    .sort(
+      (first, second) =>
+        translationPriority(first) - translationPriority(second),
+    )
+    .map((translation) => translation.data[field]?.trim() ?? '')
+    .filter(
+      (title, index, titles) =>
+        title.length >= 2 && titles.indexOf(title) === index,
+    )
+    .slice(0, 6);
+}
+
+function translationPriority(translation: Translation) {
+  const locale = `${translation.iso_639_1}-${translation.iso_3166_1}`;
+  return (
+    {
+      'zh-CN': 0,
+      'zh-TW': 1,
+      'ja-JP': 2,
+      'en-US': 3,
+      'en-GB': 4,
+    }[locale] ?? 10
+  );
+}
+
+export function getTrending(media: 'movie'): Promise<Movie[]>;
+export function getTrending(media: 'tv'): Promise<TV[]>;
+export async function getTrending(media: 'movie' | 'tv') {
+  const data = await tmdbFetch<TMDBList<Movie | TV>>(
+    `/trending/${media}/week`,
+    { revalidate: 1800 },
+  );
+  return uniqueMediaById(data.results);
+}
+
+export async function fetchMoviesName(query: string) {
+  const normalizedQuery = query.trim();
+  if (normalizedQuery.length < 2) return [];
+
+  const firstPage = await searchMoviesPage(normalizedQuery, 1);
+  const pageCount = Math.min(firstPage.total_pages, 3);
+  const remainingPages = await Promise.all(
+    Array.from({ length: Math.max(0, pageCount - 1) }, (_, index) =>
+      searchMoviesPage(normalizedQuery, index + 2),
+    ),
+  );
+  const movies = [firstPage, ...remainingPages].flatMap((page) => page.results);
+
+  return rankMovies(uniqueMediaById(movies), normalizedQuery);
+}
+
+function searchMoviesPage(query: string, page: number) {
+  return tmdbFetch<TMDBList<Movie>>('/search/movie', {
+    cache: 'no-store',
+    searchParams: { query, include_adult: false, page },
+  });
+}
+
+export async function fetchTVName(query: string) {
+  const normalizedQuery = query.trim();
+  if (normalizedQuery.length < 2) return [];
+
+  const data = await tmdbFetch<TMDBList<TV>>('/search/tv', {
+    cache: 'no-store',
+    searchParams: { query: normalizedQuery, include_adult: false, page: 1 },
+  });
+  return uniqueMediaById(data.results);
+}
+
+export function getMovieDetails(id: string) {
+  return tmdbFetch<MovieDetail>(`/movie/${numericPathSegment(id, '电影 ID')}`, {
+    revalidate: 86400,
+    searchParams: {
+      append_to_response: 'release_dates,credits,external_ids,translations',
+    },
+  });
+}
+
+export function fetchTVDetails(id: string) {
+  return tmdbFetch<TVDetail>(`/tv/${numericPathSegment(id, '电视剧 ID')}`, {
+    revalidate: 86400,
+    searchParams: {
+      append_to_response: 'content_ratings,external_ids,translations',
+    },
+  });
+}
+
+export function getTVCredits(id: string) {
+  return tmdbFetch<TVCredits>(
+    `/tv/${numericPathSegment(id, '电视剧 ID')}/aggregate_credits`,
+    { revalidate: 86400 },
+  );
+}
+
+export function getSeasonDetail(id: string, seasonNumber: string) {
+  return tmdbFetch<SeasonDetail>(
+    `/tv/${numericPathSegment(id, '电视剧 ID')}/season/${numericPathSegment(seasonNumber, '季数')}`,
+    { revalidate: 86400 },
+  );
 }

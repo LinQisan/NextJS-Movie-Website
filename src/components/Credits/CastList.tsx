@@ -1,11 +1,13 @@
-import { Badge } from '../ui/badge';
-import { StarLogo } from './StarLogo';
+'use client';
+
 import ImageHolder from '../ui/ImageHolder';
+import { useI18n } from '../I18nProvider';
+import { StarLogo } from './StarLogo';
 
 type BaseCast = {
   id: number;
   name: string;
-  profile_path?: string;
+  profile_path?: string | null;
   known_for_department: string;
 };
 
@@ -14,13 +16,7 @@ type TVCast = BaseCast & {
 };
 
 type MovieCast = BaseCast & {
-  character: string;
-};
-
-type CastProps = {
-  department: string;
-  name: string;
-  profile_path?: string;
+  credit_id: string;
   character: string;
 };
 
@@ -31,49 +27,67 @@ export default function CastList({
   data: TVCast[] | MovieCast[];
   media: 'tv' | 'movie';
 }) {
-  return data.map((castMember) => {
+  const { t } = useI18n();
+
+  return data.map((castMember, index) => {
     const character =
       media === 'tv'
-        ? (castMember as TVCast).roles[0].character
+        ? (castMember as TVCast).roles[0]?.character
         : (castMember as MovieCast).character;
+    const creditKey =
+      media === 'movie' ? (castMember as MovieCast).credit_id : castMember.id;
 
     return (
-      <Cast
-        key={castMember.id}
-        department={castMember.known_for_department}
+      <CastCard
+        key={`${creditKey}-${index}`}
         name={castMember.name}
         profile_path={castMember.profile_path}
         character={character}
+        profileAlt={t('media.profileAlt', { name: castMember.name })}
       />
     );
   });
 }
 
-function Cast({ department, name, character, profile_path }: CastProps) {
+function CastCard({
+  name,
+  character,
+  profile_path,
+  profileAlt,
+}: {
+  name: string;
+  character?: string;
+  profile_path?: string | null;
+  profileAlt: string;
+}) {
   return (
-    <div className='flex gap-2 pl-2'>
-      <div className='flex aspect-[2/3] h-[80px] w-[70px] items-center justify-center overflow-hidden rounded-lg border-2'>
+    <article className='group flex min-w-0 items-center gap-3 border-b border-zinc-200/70 py-3.5 transition-colors last:border-b-0 hover:border-slate-400'>
+      <div className='flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-100 ring-1 ring-inset ring-zinc-200/80'>
         {profile_path ? (
           <ImageHolder
             src={`https://media.themoviedb.org/t/p/w276_and_h350_face${profile_path}`}
-            alt={`${name}'s Photos`}
-            width={70}
-            height={80}
-            overrideSrc={`/${name}`}
+            alt={profileAlt}
+            width={60}
+            height={60}
           />
         ) : (
           <StarLogo />
         )}
       </div>
-      <div className='flex flex-col justify-between'>
-        <div className='flex flex-col'>
-          <h2>{name}</h2>
-          <Badge className='w-fit select-none text-clip text-nowrap rounded-md bg-zinc-950 px-2 py-0 text-center font-mono text-xs font-light text-white hover:bg-zinc-900'>
-            {department}
-          </Badge>
-        </div>
-        <p className='truncate text-sm text-gray-600'>{character}</p>
+      <div className='min-w-0'>
+        <h3
+          className='truncate text-sm font-semibold text-zinc-900'
+          title={name}
+        >
+          {name}
+        </h3>
+        <p
+          className='mt-1 truncate text-xs text-zinc-500'
+          title={character || undefined}
+        >
+          {character || '—'}
+        </p>
       </div>
-    </div>
+    </article>
   );
 }

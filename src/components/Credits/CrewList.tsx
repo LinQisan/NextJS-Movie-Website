@@ -1,17 +1,17 @@
-import Image from 'next/image';
+'use client';
 
-import { StarLogo } from './StarLogo';
-import { Badge } from '../ui/badge';
-import { YCarousel } from '../Carousel/YCarousel';
 import ImageHolder from '../ui/ImageHolder';
+import { useI18n } from '../I18nProvider';
+import { StarLogo } from './StarLogo';
 
 type BaseCrew = {
   id: number;
   name: string;
-  profile_path?: string;
+  profile_path?: string | null;
 };
 
 type MovieCrew = BaseCrew & {
+  credit_id: string;
   job: string;
 };
 
@@ -22,17 +22,6 @@ type TVCrew = BaseCrew & {
   }[];
 };
 
-type CrewProps = {
-  name: string;
-  profile_path?: string;
-  jobs:
-    | {
-        credit_id: string;
-        job: string;
-      }[]
-    | string;
-};
-
 export default function CrewList({
   data,
   media,
@@ -40,57 +29,69 @@ export default function CrewList({
   data: MovieCrew[] | TVCrew[];
   media: 'tv' | 'movie';
 }) {
-  return data.map((crewMember) => {
-    const job =
+  const { t } = useI18n();
+
+  return data.map((crewMember, index) => {
+    const jobs =
       media === 'tv'
-        ? (crewMember as TVCrew).jobs
-        : (crewMember as MovieCrew).job;
+        ? (crewMember as TVCrew).jobs.map((item) => item.job)
+        : [(crewMember as MovieCrew).job];
+    const creditKey =
+      media === 'movie' ? (crewMember as MovieCrew).credit_id : crewMember.id;
 
     return (
-      <Crew
-        key={crewMember.id}
+      <CrewCard
+        key={`${creditKey}-${index}`}
         name={crewMember.name}
         profile_path={crewMember.profile_path}
-        jobs={job}
+        jobs={[...new Set(jobs.filter(Boolean))]}
+        profileAlt={t('media.profileAlt', { name: crewMember.name })}
       />
     );
   });
 }
 
-function Crew({ name, profile_path, jobs }: CrewProps) {
+function CrewCard({
+  name,
+  profile_path,
+  jobs,
+  profileAlt,
+}: {
+  name: string;
+  profile_path?: string | null;
+  jobs: string[];
+  profileAlt: string;
+}) {
+  const jobLabel = jobs.join(' · ');
+
   return (
-    <div className='flex gap-2 pl-2'>
-      <div className='flex aspect-[2/3] h-[80px] w-[70px] items-center justify-center overflow-hidden rounded-lg border-2'>
+    <article className='group flex min-w-0 items-center gap-3 border-b border-zinc-200/70 py-3.5 transition-colors last:border-b-0 hover:border-slate-400'>
+      <div className='flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-100 ring-1 ring-inset ring-zinc-200/80'>
         {profile_path ? (
           <ImageHolder
             src={`https://media.themoviedb.org/t/p/w276_and_h350_face${profile_path}`}
-            alt={`${name}'s Photos`}
-            width={70}
-            height={70}
-          overrideSrc={`/${name}`}
+            alt={profileAlt}
+            width={60}
+            height={60}
           />
         ) : (
           <StarLogo />
         )}
       </div>
-      <div>
-        {typeof jobs === 'string' ? (
-          <Badge className='mt-2 w-fit select-none text-clip text-nowrap rounded-md bg-zinc-950 px-1 py-0 text-center font-mono text-xs font-light text-white hover:bg-zinc-900'>
-            {jobs}
-          </Badge>
-        ) : (
-          <YCarousel>
-            {jobs.map((i: any) => (
-              <div key={i.credit_id} className='min-w-0 flex-none'>
-                <Badge className='mt-2 w-fit select-none text-clip text-nowrap rounded-md bg-zinc-950 px-1 py-0 text-center font-mono text-xs font-light text-white hover:bg-zinc-900'>
-                  {i.job}
-                </Badge>
-              </div>
-            ))}
-          </YCarousel>
-        )}
-        <h2 className='truncate'>{name}</h2>
+      <div className='min-w-0'>
+        <h3
+          className='truncate text-sm font-semibold text-zinc-900'
+          title={name}
+        >
+          {name}
+        </h3>
+        <p
+          className='mt-1 line-clamp-2 text-xs leading-4 text-zinc-500'
+          title={jobLabel || undefined}
+        >
+          {jobLabel || '—'}
+        </p>
       </div>
-    </div>
+    </article>
   );
 }

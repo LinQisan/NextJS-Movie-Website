@@ -14,11 +14,8 @@ export function Carousel({ children }: { children: React.ReactNode }) {
   ]);
 
   return (
-    <div
-      className='mx-auto max-w-[360px] overflow-hidden md:max-w-[700px]'
-      ref={emblaRef}
-    >
-      <div className='flex'>{children}</div>
+    <div className='w-full overflow-hidden py-1' ref={emblaRef}>
+      <div className='-ml-3 flex sm:-ml-4'>{children}</div>
     </div>
   );
 }

@@ -1,8 +1,8 @@
 'use client';
 import React from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useDebouncedCallback } from 'use-debounce';
+import * as m from 'motion/react-m';
+import { useI18n } from '../I18nProvider';
 
 export default function NavSearch({
   handleSearching,
@@ -11,53 +11,63 @@ export default function NavSearch({
 }) {
   const searchParams = useSearchParams();
   const { replace } = useRouter();
-  const handleSearch = useDebouncedCallback((param: string) => {
-    const params = new URLSearchParams(searchParams);
+  const { t } = useI18n();
+  const [query, setQuery] = React.useState(
+    () => searchParams.get('query')?.toString() ?? '',
+  );
 
-    if (param) {
-      const encodedTerm = param;
-      params.set('query', encodedTerm);
-    } else {
-      params.delete('query');
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const normalizedQuery = query.trim();
+    const params = new URLSearchParams();
+
+    if (normalizedQuery.length >= 2) {
+      params.set('query', normalizedQuery);
     }
-    replace(`/search?${params.toString()}`);
-  }, 300);
+
+    const serializedParams = params.toString();
+    replace(serializedParams ? `/search?${serializedParams}` : '/search');
+  };
 
   return (
-    <AnimatePresence>
-      <motion.div
-        key='search'
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className='relative flex gap-2 rounded-md'
+    <m.form
+      onSubmit={handleSubmit}
+      initial={{ opacity: 0, y: -12, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: -8, scale: 0.98 }}
+      transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
+      className='relative grid w-[calc(100vw-3rem)] shrink-0 grid-cols-[minmax(0,1fr)_2rem] items-center gap-2 px-2 sm:w-[368px] sm:grid-cols-[minmax(0,1fr)_2.5rem]'
+    >
+      <button
+        type='submit'
+        aria-label={t('nav.submitSearch')}
+        className='absolute inset-y-0 left-4 z-10 flex items-center text-zinc-500 transition-colors hover:text-zinc-800 focus-visible:rounded-full focus-visible:text-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400'
       >
-        <div className='w-6'></div>
-        <div className=' absolute inset-y-0 left-0 flex items-center pl-9 '>
-          <SearchLogo />
-        </div>
+        <SearchLogo />
+      </button>
 
-        <input
-          id='search'
-          name='movie'
-          type='text'
-          className='block w-full cursor-text rounded-md border-0 py-1.5 pl-10 focus:outline-none focus:ring-4 focus:ring-black'
-          placeholder='Search'
-          defaultValue={searchParams.get('query')?.toString()}
-          onChange={(e) => handleSearch(e.target.value)}
-        />
-        <motion.button
-          className='flex items-center'
-          whileHover={{
-            scale: 1.2,
-            rotate: 90,
-          }}
-          transition={{ type: 'spring', stiffness: 400, damping: 10 }}
-          onClick={handleSearching}
-        >
-          <ReturnLogo />
-        </motion.button>
-      </motion.div>
-    </AnimatePresence>
+      <input
+        id='search'
+        name='movie'
+        type='text'
+        className='block h-8 min-w-0 cursor-text rounded-full border-2 border-zinc-300 bg-zinc-50 pl-10 pr-4 text-sm text-zinc-950 shadow-[inset_0_1px_2px_rgb(0_0_0_/_0.08)] outline-none transition-[background-color,border-color,box-shadow] placeholder:text-zinc-400 focus:border-zinc-500 focus:bg-white focus:shadow-[inset_0_1px_2px_rgb(0_0_0_/_0.04)] md:h-11 md:text-base'
+        placeholder={t('nav.searchPlaceholder')}
+        aria-label={t('nav.searchPlaceholder')}
+        enterKeyHint='search'
+        autoFocus
+        value={query}
+        onChange={(event) => setQuery(event.target.value)}
+      />
+      <button
+        type='button'
+        aria-label={t('nav.closeSearch')}
+        className='nav-theme-muted mr-0.5 flex size-8 items-center justify-center rounded-full transition-[color,background-color,transform] hover:rotate-90 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 md:size-10'
+        onClick={handleSearching}
+      >
+        <ReturnLogo />
+      </button>
+    </m.form>
   );
 }
 
@@ -69,7 +79,7 @@ function SearchLogo() {
       viewBox='0 0 24 24'
       strokeWidth={1.5}
       stroke='currentColor'
-      className='h-6 w-6'
+      className='size-5'
       aria-hidden='true'
     >
       <path
@@ -88,8 +98,8 @@ function ReturnLogo() {
       fill='none'
       viewBox='0 0 24 24'
       strokeWidth={2.5}
-      stroke='white'
-      className='h-6 w-6'
+      stroke='currentColor'
+      className='size-5'
     >
       <path
         strokeLinecap='round'

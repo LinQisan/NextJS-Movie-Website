@@ -1,10 +1,14 @@
+'use client';
+
 import Link from 'next/link';
 
 import ImageHolder from '../ui/ImageHolder';
+import { useI18n } from '../I18nProvider';
 
-import { Media } from '@/lib/data';
+import type { Media } from '@/lib/data';
 
-export default async function SearchCard({ data }: { data: Media }) {
+export default function SearchCard({ data }: { data: Media }) {
+  const { t } = useI18n();
   const isFilm = 'title' in data;
   const MediaType = isFilm ? 'film' : 'tv';
   const MediaName = isFilm ? data.title : data.name;
@@ -17,10 +21,9 @@ export default async function SearchCard({ data }: { data: Media }) {
         {data.poster_path ? (
           <ImageHolder
             src={`https://media.themoviedb.org/t/p/w600_and_h900_bestv2${data.poster_path}`}
-            alt={`${MediaName}'s Photos`}
+            alt={t('media.posterAlt', { name: MediaName })}
             width={150}
             height={225}
-            overrideSrc={`/${MediaName}`}
           />
         ) : (
           <div className='flex aspect-[2/3] items-center justify-center '>

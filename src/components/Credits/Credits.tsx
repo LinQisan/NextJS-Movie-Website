@@ -1,58 +1,74 @@
-import { Card } from '@/components/ui/card';
+import { I18nText } from '@/components/I18nProvider';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
+import { getMovieDetails, getTVCredits, type MovieCredits } from '@/lib/data';
 
 import CastList from './CastList';
 import CrewList from './CrewList';
 
-import { getMovieDetails, getTVCredits } from '@/lib/data';
-
 export default async function Credits({
   id,
   media,
+  credits,
 }: {
   id: string;
   media: 'tv' | 'movie';
+  credits?: MovieCredits;
 }) {
   let data;
   if (media === 'tv') {
     data = await getTVCredits(id);
   } else {
-    const movieDetails = await getMovieDetails(id);
-    data = movieDetails.credits;
+    data = credits ?? (await getMovieDetails(id)).credits;
   }
 
   return (
-    <Tabs defaultValue='cast'>
-      <TabsList className='w-full'>
-        <TabsTrigger className='w-1/2' value='cast'>
-          Cast
-        </TabsTrigger>
-        <TabsTrigger className='w-1/2' value='crew'>
-          Crew
-        </TabsTrigger>
-      </TabsList>
-      <TabsContent value='cast'>
-        <Card className='w-full '>
-          <div
-            className='flex h-64 w-[380px] flex-col gap-4 
-      overflow-y-auto           
-      scroll-smooth md:w-[600px]'
+    <section
+      className='border-t border-zinc-200/80 pt-8'
+      aria-labelledby='credits-heading'
+    >
+      <Tabs defaultValue='cast' className='w-full'>
+        <div className='flex flex-wrap items-center justify-between gap-3'>
+          <h2
+            id='credits-heading'
+            className='text-lg font-semibold tracking-[-0.02em] text-zinc-950'
           >
+            <I18nText messageKey='detail.credits' />
+          </h2>
+          <TabsList className='h-8 gap-1 rounded-none bg-transparent p-0'>
+            <TabsTrigger
+              className='h-8 rounded-none border-b-2 border-transparent px-2.5 py-1 text-xs text-zinc-500 data-[state=active]:border-zinc-950 data-[state=active]:bg-transparent data-[state=active]:text-zinc-950 data-[state=active]:shadow-none'
+              value='cast'
+            >
+              <I18nText messageKey='detail.cast' />
+            </TabsTrigger>
+            <TabsTrigger
+              className='h-8 rounded-none border-b-2 border-transparent px-2.5 py-1 text-xs text-zinc-500 data-[state=active]:border-zinc-950 data-[state=active]:bg-transparent data-[state=active]:text-zinc-950 data-[state=active]:shadow-none'
+              value='crew'
+            >
+              <I18nText messageKey='detail.crew' />
+            </TabsTrigger>
+          </TabsList>
+        </div>
+        <TabsContent value='cast'>
+          <CreditPanel>
             <CastList data={data.cast} media={media} />
-          </div>
-        </Card>
-      </TabsContent>
-      <TabsContent value='crew'>
-        <Card className='w-full '>
-          <div
-            className='flex h-64 w-[380px] flex-col gap-4 
-      overflow-y-auto           
-      scroll-smooth md:w-[600px]'
-          >
+          </CreditPanel>
+        </TabsContent>
+        <TabsContent value='crew'>
+          <CreditPanel>
             <CrewList data={data.crew} media={media} />
-          </div>
-        </Card>
-      </TabsContent>
-    </Tabs>
+          </CreditPanel>
+        </TabsContent>
+      </Tabs>
+    </section>
+  );
+}
+
+function CreditPanel({ children }: { children: React.ReactNode }) {
+  return (
+    <div className='mt-4 grid max-h-[500px] grid-cols-1 gap-x-8 overflow-y-auto sm:grid-cols-2'>
+      {children}
+    </div>
   );
 }

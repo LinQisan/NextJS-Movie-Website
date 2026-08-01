@@ -1,25 +1,21 @@
 import { getTrending } from '@/lib/data';
+import { Reveal } from '../Motion/Reveal';
 import MediaCard from './MediaCard';
 
-type data= {
-  id: number;
-  name: string;
-  backdrop_path: string;
-}
-
 export async function LandscapeCardMap({ count }: { count?: number }) {
-  let data: data[] = await getTrending('tv');
+  let data = (await getTrending('tv')).filter((show) => show.backdrop_path);
   if (count) {
     data = data.slice(0, count);
   }
-  return data.map(({ id, name, backdrop_path }) => {
+  return data.map(({ id, name, backdrop_path }, index) => {
     return (
-      <MediaCard
-        imgUrl={`https://image.tmdb.org/t/p/original${backdrop_path}`}
-        name={name}
-        key={id}
-        id={id}
-      />
+      <Reveal key={id} className='w-full' delay={Math.min(index, 5) * 0.06}>
+        <MediaCard
+          imgUrl={`https://image.tmdb.org/t/p/original${backdrop_path!}`}
+          name={name}
+          id={id}
+        />
+      </Reveal>
     );
   });
 }

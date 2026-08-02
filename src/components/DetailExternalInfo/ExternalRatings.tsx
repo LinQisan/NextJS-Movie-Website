@@ -3,6 +3,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 
 import { I18nText, useI18n } from '@/components/I18nProvider';
+import type { BangumiAnimeInfo } from '@/lib/bangumi-types';
 import { localeConfig, type Locale } from '@/lib/i18n';
 import type { DoubanRatingResponse } from '@/lib/douban-trend';
 import {
@@ -16,6 +17,7 @@ import type {
   ExternalRatingsResponse,
   TVMazeInfo,
 } from '@/lib/external-ratings';
+import RatingChart from './RatingChart';
 
 type DoubanCacheEntry = {
   rating: DoubanRatingResponse['rating'];
@@ -83,12 +85,16 @@ export type ExternalRatingsProps = {
   year?: string;
   doubanKey: string;
   media: 'movie' | 'tv';
+  isAnimation?: boolean;
+  /** Server-resolved Bangumi data prevents a duplicate client-side lookup. */
+  bangumi?: BangumiAnimeInfo | null;
 };
 
 type ExternalRatingState = {
   ratings: RatingInput[];
   weighted: WeightedRatingResult | null;
   broadcast: TVMazeInfo | null;
+  bangumi: BangumiAnimeInfo | null;
 };
 
 export function useExternalRatings({
@@ -102,6 +108,8 @@ export function useExternalRatings({
   year,
   doubanKey,
   media,
+  isAnimation = false,
+  bangumi: initialBangumi = null,
 }: ExternalRatingsProps): ExternalRatingState {
   const [externalData, setExternalData] =
     useState<ExternalRatingsResponse | null>(null);
@@ -112,24 +120,42 @@ export function useExternalRatings({
     useState<DoubanRatingResponse['rating']>(null);
   const [doubanLoadedKey, setDoubanLoadedKey] = useState<string | null>(null);
 
-  const externalRequestKey = `${media}:${imdbId ?? ''}`;
+  const shouldResolveBangumi = isAnimation && !initialBangumi;
+  const externalRequestKey = `${media}:${tmdbId}:${shouldResolveBangumi ? 'animation' : 'base'}`;
 
   useEffect(() => {
-    if (!imdbId) return;
+    if ((!imdbId && !isAnimation) || !title || title.length < 2) return;
 
     let disposed = false;
-    fetchCachedExternalRatings(externalRequestKey, imdbId, media).then(
-      (nextData) => {
-        if (disposed) return;
-        setExternalData(nextData);
-        setExternalLoadedKey(externalRequestKey);
-      },
-    );
+    fetchCachedExternalRatings(externalRequestKey, {
+      imdbId,
+      media,
+      title,
+      originalTitle,
+      titles,
+      year,
+      isAnimation: shouldResolveBangumi,
+    }).then((nextData) => {
+      if (disposed) return;
+      setExternalData(nextData);
+      setExternalLoadedKey(externalRequestKey);
+    });
 
     return () => {
       disposed = true;
     };
-  }, [externalRequestKey, imdbId, media]);
+  }, [
+    externalRequestKey,
+    imdbId,
+    isAnimation,
+    media,
+    originalTitle,
+    shouldResolveBangumi,
+    title,
+    titles,
+    year,
+    initialBangumi,
+  ]);
 
   useEffect(() => {
     if (!title || title.length < 2 || !doubanKey) return;
@@ -158,6 +184,7 @@ export function useExternalRatings({
   const visibleExternalData =
     externalLoadedKey === externalRequestKey ? externalData : null;
   const visibleDoubanData = doubanLoadedKey === doubanKey ? doubanData : null;
+  const visibleBangumi = visibleExternalData?.bangumi ?? initialBangumi;
   const ratings = createRatings({
     tmdbId,
     tmdbScore,
@@ -165,18 +192,20 @@ export function useExternalRatings({
     media,
     doubanData: visibleDoubanData,
     externalData: visibleExternalData,
+    bangumiData: visibleBangumi,
   });
   const weighted = calculateWeightedRating(ratings);
   const broadcast = media === 'tv' ? visibleExternalData?.tvmaze ?? null : null;
+  const bangumi = visibleBangumi;
 
-  return { ratings, weighted, broadcast };
+  return { ratings, weighted, broadcast, bangumi };
 }
 
 export default function ExternalRatings(props: ExternalRatingsProps) {
   const { locale } = useI18n();
-  const { ratings, weighted, broadcast } = useExternalRatings(props);
+  const { ratings, weighted, broadcast, bangumi } = useExternalRatings(props);
 
-  if (ratings.length === 0 && !broadcast) return null;
+  if (ratings.length === 0 && !broadcast && !bangumi) return null;
 
   return (
     <div className='space-y-10'>
@@ -203,19 +232,13 @@ export default function ExternalRatings(props: ExternalRatingsProps) {
             </span>
           </div>
 
-          <ul className='mt-5 divide-y divide-zinc-200/70'>
-            {weighted?.contributors.map((rating) => (
-              <RatingRow
-                key={`${rating.source}:${rating.href}`}
-                rating={rating}
-                locale={locale}
-              />
-            ))}
-          </ul>
+          <RatingChart ratings={weighted?.contributors ?? []} locale={locale} />
         </section>
       )}
 
       {broadcast && <BroadcastSection data={broadcast} locale={locale} />}
+
+      {bangumi && <BangumiSection data={bangumi} locale={locale} />}
     </div>
   );
 }
@@ -227,6 +250,7 @@ function createRatings({
   media,
   doubanData,
   externalData,
+  bangumiData,
 }: {
   tmdbId: number | string;
   tmdbScore: number;
@@ -234,6 +258,7 @@ function createRatings({
   media: 'movie' | 'tv';
   doubanData: DoubanRatingResponse['rating'];
   externalData: ExternalRatingsResponse | null;
+  bangumiData: BangumiAnimeInfo | null;
 }) {
   const ratings: RatingInput[] = [];
   if (Number.isFinite(tmdbScore) && tmdbScore > 0) {
@@ -268,13 +293,30 @@ function createRatings({
     }
   }
 
+  if (bangumiData?.score) {
+    ratings.push({
+      source: 'Bangumi',
+      score: bangumiData.score,
+      scale: 10,
+      votes: bangumiData.scoreVotes,
+      href: bangumiData.href,
+    });
+  }
+
   return ratings;
 }
 
 function fetchCachedExternalRatings(
   cacheKey: string,
-  imdbId: string,
-  media: ExternalRatingsProps['media'],
+  query: {
+    imdbId?: string | null;
+    media: ExternalRatingsProps['media'];
+    title: string;
+    originalTitle?: string;
+    titles?: string[];
+    year?: string;
+    isAnimation: boolean;
+  },
 ) {
   const cached = externalCache.get(cacheKey);
   if (cached) {
@@ -287,9 +329,17 @@ function fetchCachedExternalRatings(
   const pending = pendingExternalRequests.get(cacheKey);
   if (pending) return pending;
 
-  const request = fetch(
-    `/api/external-ratings?imdb=${encodeURIComponent(imdbId)}&media=${media}`,
-  )
+  const params = new URLSearchParams({
+    media: query.media,
+    title: query.title,
+  });
+  if (query.imdbId) params.set('imdb', query.imdbId);
+  if (query.originalTitle) params.set('originalTitle', query.originalTitle);
+  if (query.titles?.length) params.set('titles', JSON.stringify(query.titles));
+  if (query.year) params.set('year', query.year.slice(0, 4));
+  if (query.isAnimation) params.set('animation', '1');
+
+  const request = fetch(`/api/external-ratings?${params.toString()}`)
     .then(async (response) => {
       if (!response.ok) throw new Error('External ratings request failed.');
       return (await response.json()) as ExternalRatingsResponse;
@@ -372,53 +422,6 @@ function fetchCachedDoubanRating(
   return request;
 }
 
-function RatingRow({
-  rating,
-  locale,
-}: {
-  rating: WeightedRating;
-  locale: Locale;
-}) {
-  const score = Number.isInteger(rating.score)
-    ? rating.score.toString()
-    : rating.score.toFixed(1);
-  const votes = rating.votes ? formatCount(rating.votes, locale) : null;
-
-  return (
-    <li>
-      <a
-        href={rating.href}
-        target='_blank'
-        rel='noreferrer'
-        className='group flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0'
-      >
-        <span className='flex min-w-0 items-center gap-2.5'>
-          <span
-            className='size-1.5 shrink-0 rounded-full bg-[var(--theme-accent)] transition-transform duration-300 group-hover:scale-125'
-            aria-hidden='true'
-          />
-          <span className='truncate text-sm font-medium text-zinc-800 transition-colors group-hover:text-[var(--theme-accent)]'>
-            {rating.source}
-          </span>
-        </span>
-        <span className='flex shrink-0 items-baseline gap-2'>
-          {votes && (
-            <span className='text-[10px] text-zinc-400'>
-              {votes} <I18nText messageKey='detail.votes' />
-            </span>
-          )}
-          <strong className='text-xl font-semibold tracking-[-0.04em] text-zinc-950'>
-            {score}
-            <span className='ml-0.5 text-[10px] font-medium tracking-normal text-zinc-400'>
-              /{rating.scale}
-            </span>
-          </strong>
-        </span>
-      </a>
-    </li>
-  );
-}
-
 function BroadcastSection({
   data,
   locale,
@@ -484,6 +487,83 @@ function BroadcastSection({
   );
 }
 
+function BangumiSection({
+  data,
+  locale,
+}: {
+  data: BangumiAnimeInfo;
+  locale: Locale;
+}) {
+  const displayName = locale === 'zh' ? data.nameCn || data.name : data.name;
+  const episodeCount = data.totalEpisodes || data.episodes;
+
+  return (
+    <section className='border-b border-zinc-200/80 pb-8'>
+      <div className='flex items-baseline justify-between gap-3'>
+        <SectionEyebrow>
+          <I18nText messageKey='detail.bangumi' />
+        </SectionEyebrow>
+        <a
+          href={data.href}
+          target='_blank'
+          rel='noreferrer'
+          className='text-[10px] font-medium uppercase tracking-[0.12em] text-zinc-400 transition-colors hover:text-[var(--theme-accent)]'
+        >
+          Bangumi ↗
+        </a>
+      </div>
+
+      <p className='mt-3 text-sm font-medium leading-6 text-zinc-800'>
+        {displayName}
+      </p>
+
+      <dl className='mt-4 grid grid-cols-2 gap-x-5 gap-y-4'>
+        {data.date && (
+          <InfoRow
+            label={<I18nText messageKey='detail.bangumiDate' />}
+            value={formatDate(data.date, locale)}
+          />
+        )}
+        {data.platform && (
+          <InfoRow
+            label={<I18nText messageKey='detail.bangumiPlatform' />}
+            value={data.platform}
+          />
+        )}
+        {episodeCount && (
+          <InfoRow
+            label={<I18nText messageKey='detail.bangumiEpisodes' />}
+            value={String(episodeCount)}
+          />
+        )}
+        {data.rank && (
+          <InfoRow
+            label={<I18nText messageKey='detail.bangumiRank' />}
+            value={`#${data.rank}`}
+          />
+        )}
+        {data.collection && (
+          <InfoRow
+            label={<I18nText messageKey='detail.bangumiCollection' />}
+            value={formatCount(data.collection, locale)}
+          />
+        )}
+      </dl>
+
+      {data.tags.length > 0 && (
+        <div className='mt-4'>
+          <p className='text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-400'>
+            <I18nText messageKey='detail.bangumiTags' />
+          </p>
+          <p className='mt-2 text-xs leading-5 text-zinc-600'>
+            {data.tags.join(' / ')}
+          </p>
+        </div>
+      )}
+    </section>
+  );
+}
+
 function InfoRow({
   label,
   value,
@@ -526,6 +606,17 @@ function formatCount(value: number, locale: Locale) {
     notation: 'compact',
     maximumFractionDigits: 1,
   }).format(value);
+}
+
+function formatDate(value: string, locale: Locale) {
+  const date = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return value;
+
+  return new Intl.DateTimeFormat(localeConfig[locale].html, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  }).format(date);
 }
 
 function SectionEyebrow({ children }: { children: ReactNode }) {

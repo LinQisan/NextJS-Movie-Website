@@ -6,6 +6,7 @@ import {
   type NextEpisode,
   type TVMazeInfo,
 } from '@/lib/external-ratings';
+import { findBangumiAnime } from '@/lib/bangumi';
 
 const IMDB_GRAPHQL_URL = 'https://api.graphql.imdb.com/';
 const TVMAZE_API_URL = 'https://api.tvmaze.com';
@@ -47,18 +48,44 @@ type TVMazeEpisode = {
 };
 
 export async function GET(request: NextRequest) {
-  const imdbId = request.nextUrl.searchParams.get('imdb')?.trim() ?? '';
-  const media = request.nextUrl.searchParams.get('media');
+  const imdbValue = request.nextUrl.searchParams.get('imdb')?.trim() ?? '';
+  const imdbId = /^tt\d+$/.test(imdbValue) ? imdbValue : '';
+  const mediaValue = request.nextUrl.searchParams.get('media');
+  const isAnimation = request.nextUrl.searchParams.get('animation') === '1';
+  const title = request.nextUrl.searchParams.get('title')?.trim() ?? '';
+  const originalTitle =
+    request.nextUrl.searchParams.get('originalTitle')?.trim() || undefined;
+  const year = request.nextUrl.searchParams.get('year')?.trim() || undefined;
+  const titles = parseTitles(request.nextUrl.searchParams.get('titles'));
 
-  if (!/^tt\d+$/.test(imdbId)) {
-    return Response.json({ error: '无效的 IMDb ID。' }, { status: 400 });
+  if (mediaValue !== 'movie' && mediaValue !== 'tv') {
+    return Response.json({ error: '无效的媒体类型。' }, { status: 400 });
   }
 
-  const [imdbResult, omdbResult, tvmazeResult] = await Promise.allSettled([
-    fetchImdbRating(imdbId),
-    fetchOmdbRatings(imdbId),
-    media === 'tv' ? fetchTVMazeInfo(imdbId) : Promise.resolve(null),
-  ]);
+  if (!imdbId && !(isAnimation && title.length >= 2)) {
+    return Response.json({ error: '缺少有效的 IMDb ID。' }, { status: 400 });
+  }
+
+  const media = mediaValue as 'movie' | 'tv';
+  const [imdbResult, omdbResult, tvmazeResult, bangumiResult] =
+    await Promise.allSettled([
+      imdbId ? fetchImdbRating(imdbId) : Promise.resolve(null),
+      imdbId ? fetchOmdbRatings(imdbId) : Promise.resolve([]),
+      media === 'tv' && imdbId
+        ? fetchTVMazeInfo(imdbId)
+        : Promise.resolve(null),
+      isAnimation && title.length >= 2
+        ? findBangumiAnime({
+            title,
+            originalTitle,
+            titles,
+            year,
+            media,
+          })
+        : Promise.resolve(null),
+    ]);
+
+  const bangumi = getFulfilled(bangumiResult);
 
   const ratings = [
     getFulfilled(imdbResult),
@@ -72,6 +99,7 @@ export async function GET(request: NextRequest) {
   const response: ExternalRatingsResponse = {
     ratings: uniqueRatings,
     tvmaze: getFulfilled(tvmazeResult),
+    bangumi,
   };
 
   return Response.json(response, {
@@ -249,6 +277,23 @@ async function fetchJson<T>(url: string) {
 
 function getFulfilled<T>(result: PromiseSettledResult<T>) {
   return result.status === 'fulfilled' ? result.value : null;
+}
+
+function parseTitles(value: string | null) {
+  if (!value) return [];
+
+  try {
+    const parsed: unknown = JSON.parse(value);
+    if (!Array.isArray(parsed)) return [];
+
+    return parsed
+      .filter((item): item is string => typeof item === 'string')
+      .map((item) => item.trim().slice(0, 160))
+      .filter(Boolean)
+      .slice(0, 8);
+  } catch {
+    return [];
+  }
 }
 
 function toPositiveNumber(value: unknown) {

@@ -76,25 +76,42 @@
 }
 
 :root {
-  --theme-background: #f7f6f3;
-  --theme-bg-top: #f0ede7;
-  --theme-bg-bottom: #fbfaf8;
-  --theme-primary: #1b1b1b;
-  --theme-secondary: rgba(27, 27, 27, 0.68);
-  --theme-muted: rgba(27, 27, 27, 0.48);
-  --theme-accent: #7c5548;
-  --theme-accent-rgb: 124, 85, 72;
-  --theme-nav: #292a2d;
-  --theme-nav-rgb: 41, 42, 45;
+  --theme-background: #ffffff;
+  --theme-bg-top: #ffffff;
+  --theme-bg-bottom: #ffffff;
+  --theme-primary: #171717;
+  --theme-secondary: rgba(23, 23, 23, 0.68);
+  --theme-muted: rgba(23, 23, 23, 0.48);
+  --theme-accent: #171717;
+  --theme-accent-rgb: 255, 255, 255;
+  --theme-hero-rgb: 5, 5, 5;
+  --theme-nav: #050505;
+  --theme-nav-rgb: 5, 5, 5;
   --theme-nav-text: #ffffff;
   --theme-nav-muted: rgba(255, 255, 255, 0.68);
-  --theme-nav-active: #b58b7a;
-  --theme-nav-active-label: #e3b58f;
-  --theme-nav-active-text: #151515;
-  --theme-border: rgba(27, 27, 27, 0.12);
+  --theme-nav-active: #ffffff;
+  --theme-nav-active-label: #ffffff;
+  --theme-nav-active-text: #111111;
+  --theme-border: rgba(23, 23, 23, 0.12);
 }
 
 body {
+  background-color: var(--theme-background);
+  background-image: none;
+  color: var(--theme-primary);
+  transition:
+    background-color 450ms ease,
+    background-image 450ms ease,
+    color 450ms ease;
+}
+
+/* A detail Hero owns the top edge of the page; retain the side/bottom gutter
+   while removing the otherwise visible strip above the artwork. */
+body:has(.detail-theme) {
+  padding-top: 0;
+}
+
+:root[data-detail-theme='true'] body {
   background-color: var(--theme-background);
   background-image: radial-gradient(
       circle at 70% 0%,
@@ -102,11 +119,6 @@ body {
       transparent 42%
     ),
     linear-gradient(180deg, var(--theme-bg-top), var(--theme-bg-bottom));
-  color: var(--theme-primary);
-  transition:
-    background-color 450ms ease,
-    background-image 450ms ease,
-    color 450ms ease;
 }
 
 .detail-atmosphere-fade {
@@ -115,6 +127,59 @@ body {
     transparent 0%,
     var(--theme-background) 100%
   );
+}
+
+/* On detail pages the pill is anchored to the Hero's top edge instead of
+   creating a separate header band. It scrolls away with the artwork rather
+   than remaining over the detail content. Listing and search pages keep the
+   normal flow. */
+.detail-navbar {
+  position: absolute;
+  top: max(1rem, env(safe-area-inset-top));
+  left: 50%;
+  z-index: 80;
+  margin-right: 0;
+  margin-left: 0;
+  transform: translateX(-50%);
+}
+
+/* Keep the top of the backdrop clear. The lower third receives the poster
+   tone and then dissolves into the page background so the title block feels
+   anchored rather than sitting on a black rectangle. */
+.detail-hero-gradient {
+  background: linear-gradient(
+    to bottom,
+    rgba(var(--theme-hero-rgb), 0) 0%,
+    rgba(var(--theme-hero-rgb), 0) 43%,
+    rgba(var(--theme-hero-rgb), 0.1) 58%,
+    rgba(var(--theme-hero-rgb), 0.48) 76%,
+    rgba(var(--theme-hero-rgb), 0.74) 86%,
+    var(--theme-background) 96%,
+    var(--theme-background) 100%
+  );
+  transition:
+    background 480ms ease,
+    opacity 480ms ease;
+}
+
+.rating-chart-row + .rating-chart-row {
+  border-top: 1px solid var(--theme-border);
+}
+
+.rating-chart-track {
+  background: rgba(var(--theme-accent-rgb), 0.12);
+}
+
+.rating-chart-score {
+  background: var(--theme-accent);
+}
+
+.rating-chart-vote-track {
+  background: var(--theme-border);
+}
+
+.rating-chart-vote {
+  background: rgba(var(--theme-accent-rgb), 0.42);
 }
 
 .themed-navbar {
@@ -237,4 +302,94 @@ body {
 .detail-theme [class*='border-zinc-200'],
 .detail-theme [class*='border-zinc-300'] {
   border-color: var(--theme-border);
+}
+
+.detail-picker-trigger {
+  background-color: var(--theme-background);
+  background-color: color-mix(
+    in srgb,
+    var(--theme-background) 88%,
+    var(--theme-accent) 12%
+  );
+  border: 1px solid var(--theme-border);
+  color: var(--theme-primary);
+  box-shadow: 0 5px 16px rgba(23, 23, 23, 0.04);
+}
+
+.detail-picker-trigger:hover:not(:disabled),
+.detail-picker-trigger:focus-visible:not(:disabled) {
+  border-color: rgba(var(--theme-accent-rgb), 0.48);
+  box-shadow:
+    0 8px 24px rgba(23, 23, 23, 0.07),
+    0 0 0 3px rgba(var(--theme-accent-rgb), 0.08);
+}
+
+.detail-picker-trigger:disabled {
+  cursor: not-allowed;
+  opacity: 0.52;
+}
+
+.detail-picker-menu {
+  background-color: var(--theme-background);
+  background-color: color-mix(
+    in srgb,
+    var(--theme-background) 94%,
+    var(--theme-accent) 6%
+  );
+  border: 1px solid var(--theme-border);
+  color: var(--theme-primary);
+  backdrop-filter: blur(18px) saturate(120%);
+  -webkit-backdrop-filter: blur(18px) saturate(120%);
+  animation: detail-picker-enter 160ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.detail-picker-group {
+  color: var(--theme-muted);
+}
+
+.detail-picker-option {
+  color: var(--theme-secondary);
+}
+
+.detail-picker-option:hover,
+.detail-picker-option:focus-visible,
+.detail-picker-option[data-selected='true'] {
+  background-color: rgba(var(--theme-accent-rgb), 0.12);
+  color: var(--theme-primary);
+}
+
+.detail-picker-option[data-selected='true'] {
+  font-weight: 600;
+}
+
+.detail-picker-action {
+  color: var(--theme-accent);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: rgba(var(--theme-accent-rgb), 0.34);
+  text-underline-offset: 3px;
+  transition: color 180ms ease;
+}
+
+.detail-picker-action:hover,
+.detail-picker-action:focus-visible {
+  color: var(--theme-primary);
+}
+
+@keyframes detail-picker-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .detail-picker-menu {
+    animation: none;
+  }
 }

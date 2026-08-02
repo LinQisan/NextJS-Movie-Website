@@ -1,3 +1,5 @@
+import type { BangumiAnimeInfo } from './bangumi-types';
+
 export type ExternalRating = {
   source: string;
   score: number;
@@ -29,4 +31,5 @@ export type TVMazeInfo = {
 export type ExternalRatingsResponse = {
   ratings: ExternalRating[];
   tvmaze: TVMazeInfo | null;
+  bangumi: BangumiAnimeInfo | null;
 };

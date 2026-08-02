@@ -13,6 +13,32 @@ export type ThemeVars = Record<string, string>;
 const WHITE: RGB = { r: 255, g: 255, b: 255 };
 const BLACK: RGB = { r: 12, g: 12, b: 14 };
 
+/**
+ * The neutral theme used by the shell outside of movie and TV detail pages.
+ * DetailTheme animates back to these values before removing its inline vars,
+ * so the persistent navbar does not keep a title's palette after navigation.
+ */
+export const BASE_THEME_VARS: ThemeVars = {
+  '--theme-background': '#ffffff',
+  '--theme-bg-top': '#ffffff',
+  '--theme-bg-bottom': '#ffffff',
+  '--theme-primary': '#171717',
+  '--theme-secondary': 'rgba(23, 23, 23, 0.68)',
+  '--theme-muted': 'rgba(23, 23, 23, 0.48)',
+  '--theme-accent': '#171717',
+  // White keeps the neutral shell's radial background treatment invisible.
+  '--theme-accent-rgb': '255, 255, 255',
+  '--theme-hero-rgb': '5, 5, 5',
+  '--theme-nav': '#050505',
+  '--theme-nav-rgb': '5, 5, 5',
+  '--theme-nav-text': '#ffffff',
+  '--theme-nav-muted': 'rgba(255, 255, 255, 0.68)',
+  '--theme-nav-active': '#ffffff',
+  '--theme-nav-active-label': '#ffffff',
+  '--theme-nav-active-text': '#111111',
+  '--theme-border': 'rgba(23, 23, 23, 0.12)',
+};
+
 export const DEFAULT_THEME_VARS: ThemeVars = {
   '--theme-background': '#f7f6f3',
   '--theme-bg-top': '#f0ede7',
@@ -22,6 +48,7 @@ export const DEFAULT_THEME_VARS: ThemeVars = {
   '--theme-muted': 'rgba(27, 27, 27, 0.48)',
   '--theme-accent': '#7c5548',
   '--theme-accent-rgb': '124, 85, 72',
+  '--theme-hero-rgb': '41, 42, 45',
   '--theme-nav': '#292a2d',
   '--theme-nav-rgb': '41, 42, 45',
   '--theme-nav-text': '#ffffff',
@@ -140,6 +167,7 @@ export function createThemeVars(palette: ThemePalette): ThemeVars {
   const muted = hexToRgb(palette.muted);
   const vibrant = normalizeAccent(hexToRgb(palette.vibrant));
   const dark = normalizeNav(mix(hexToRgb(palette.dark), muted, 0.42));
+  const hero = mix(dark, muted, 0.26);
   const background = mix(muted, WHITE, 0.88);
   const backgroundTop = mix(muted, WHITE, 0.78);
   const backgroundBottom = mix(background, WHITE, 0.52);
@@ -158,6 +186,7 @@ export function createThemeVars(palette: ThemePalette): ThemeVars {
     '--theme-muted': rgba(hexToRgb(primary), 0.48),
     '--theme-accent': rgbToHex(vibrant),
     '--theme-accent-rgb': `${vibrant.r}, ${vibrant.g}, ${vibrant.b}`,
+    '--theme-hero-rgb': `${hero.r}, ${hero.g}, ${hero.b}`,
     '--theme-nav': rgbToHex(dark),
     '--theme-nav-rgb': `${dark.r}, ${dark.g}, ${dark.b}`,
     '--theme-nav-text': navText,

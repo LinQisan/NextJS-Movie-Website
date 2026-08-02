@@ -11,7 +11,7 @@ export async function CarouselCardMap() {
       return (
         <Reveal
           key={id}
-          className='min-w-0 flex-none pl-3 sm:pl-4'
+          className='min-w-0 flex-[0_0_50%] pl-2 sm:flex-[0_0_33.333333%] sm:pl-3 md:flex-[0_0_25%] lg:flex-[0_0_20%] lg:pl-4'
           delay={Math.min(index, 6) * 0.04}
         >
           <CarouselCard

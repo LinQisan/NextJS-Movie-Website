@@ -55,6 +55,7 @@ export type MediaTranslations = {
 
 export type TVDetail = {
   backdrop_path?: string | null;
+  poster_path?: string | null;
   first_air_date: string;
   genres: Genre[];
   id: number;
@@ -77,6 +78,7 @@ export type TVDetail = {
 
 export type MovieDetail = {
   backdrop_path?: string | null;
+  poster_path?: string | null;
   release_date: string;
   genres: Genre[];
   id: number;
@@ -108,17 +110,21 @@ export type Season = {
   name: string;
   episode_count: number;
   season_number: number;
+  air_date?: string | null;
 };
 
 export type Episode = {
   id: number;
   air_date: string;
   episode_number: number;
+  episode_type?: string;
   name: string;
   overview: string;
   runtime: number | null;
   season_number: number;
+  still_path?: string | null;
   vote_average: number;
+  vote_count?: number;
 };
 
 export type SeasonDetail = {
@@ -132,6 +138,7 @@ export type TVCredits = {
   cast: {
     id: number;
     name: string;
+    original_name?: string;
     profile_path?: string | null;
     known_for_department: string;
     roles: { character: string }[];
@@ -149,6 +156,7 @@ export type MovieCredits = {
     credit_id: string;
     id: number;
     name: string;
+    original_name?: string;
     profile_path?: string | null;
     known_for_department: string;
     character: string;

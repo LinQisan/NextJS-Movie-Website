@@ -1,37 +1,22 @@
 import { I18nText } from '../I18nProvider';
 import { Skeleton } from '../ui/skeleton';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 
 export default function CreditsLoading() {
   return (
-    <section aria-hidden='true'>
-      <Tabs defaultValue='cast' className='w-full'>
-        <div className='flex flex-wrap items-center justify-between gap-3'>
-          <h2 className='text-lg font-semibold text-zinc-950'>
-            <I18nText messageKey='detail.credits' />
-          </h2>
-          <TabsList className='h-8 gap-1 rounded-none bg-transparent p-0'>
-            <TabsTrigger
-              className='h-8 rounded-none border-b-2 border-transparent px-2.5 py-1 text-xs data-[state=active]:border-zinc-950 data-[state=active]:bg-transparent data-[state=active]:shadow-none'
-              value='cast'
-            >
-              <I18nText messageKey='detail.cast' />
-            </TabsTrigger>
-            <TabsTrigger
-              className='h-8 rounded-none border-b-2 border-transparent px-2.5 py-1 text-xs data-[state=active]:border-zinc-950 data-[state=active]:bg-transparent data-[state=active]:shadow-none'
-              value='crew'
-            >
-              <I18nText messageKey='detail.crew' />
-            </TabsTrigger>
-          </TabsList>
+    <section className='border-t border-zinc-200/80 pt-8' aria-hidden='true'>
+      <div className='credits-tabs-list flex w-fit items-center gap-1 border-b border-zinc-200/70'>
+        <div className='relative px-2.5 py-2 text-xs font-medium text-zinc-950'>
+          <I18nText messageKey='detail.cast' />
+          <span
+            className='absolute inset-x-1 -bottom-px h-[3px] rounded-full bg-[var(--theme-accent)]'
+            aria-hidden='true'
+          />
         </div>
-        <TabsContent value='cast'>
-          <CreditSkeletonPanel />
-        </TabsContent>
-        <TabsContent value='crew'>
-          <CreditSkeletonPanel />
-        </TabsContent>
-      </Tabs>
+        <div className='px-2.5 py-2 text-xs font-medium text-zinc-500'>
+          <I18nText messageKey='detail.crew' />
+        </div>
+      </div>
+      <CreditSkeletonPanel />
     </section>
   );
 }

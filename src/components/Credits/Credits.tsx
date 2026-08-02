@@ -1,66 +1,90 @@
 import { I18nText } from '@/components/I18nProvider';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
+import type { BangumiCharacter } from '@/lib/bangumi-types';
 import { getMovieDetails, getTVCredits, type MovieCredits } from '@/lib/data';
 
 import CastList from './CastList';
+import CharacterList from './CharacterList';
 import CrewList from './CrewList';
+import CreditsTabs, { type CreditsPanel, type CreditsTab } from './CreditsTabs';
 
 export default async function Credits({
   id,
   media,
   credits,
+  bangumiCharacters,
 }: {
   id: string;
   media: 'tv' | 'movie';
   credits?: MovieCredits;
+  bangumiCharacters?: BangumiCharacter[];
 }) {
-  let data;
-  if (media === 'tv') {
-    data = await getTVCredits(id);
-  } else {
-    data = credits ?? (await getMovieDetails(id)).credits;
-  }
+  const data =
+    media === 'tv'
+      ? await getTVCredits(id)
+      : credits ?? (await getMovieDetails(id)).credits;
+  const hasCharacters = Boolean(bangumiCharacters?.length);
+  const tabs: CreditsTab[] = [
+    ...(hasCharacters
+      ? [{ value: 'characters', label: 'detail.characters' as const }]
+      : []),
+    {
+      value: 'cast',
+      label: hasCharacters ? ('detail.voiceCast' as const) : 'detail.cast',
+    },
+    { value: 'crew', label: 'detail.crew' },
+  ];
+  const panels: CreditsPanel[] = [
+    ...(hasCharacters
+      ? [
+          {
+            value: 'characters',
+            content: (
+              <CreditPanel>
+                <CharacterList
+                  data={bangumiCharacters ?? []}
+                  tmdbCast={data.cast}
+                />
+              </CreditPanel>
+            ),
+          },
+        ]
+      : []),
+    {
+      value: 'cast',
+      content: (
+        <CreditPanel>
+          <CastList data={data.cast} media={media} />
+        </CreditPanel>
+      ),
+    },
+    {
+      value: 'crew',
+      content: (
+        <CreditPanel>
+          <CrewList data={data.crew} media={media} />
+        </CreditPanel>
+      ),
+    },
+  ];
 
   return (
     <section
       className='border-t border-zinc-200/80 pt-8'
       aria-labelledby='credits-heading'
     >
-      <Tabs defaultValue='cast' className='w-full'>
-        <div className='flex flex-wrap items-center justify-between gap-3'>
-          <h2
-            id='credits-heading'
-            className='text-lg font-semibold tracking-[-0.02em] text-zinc-950'
-          >
-            <I18nText messageKey='detail.credits' />
-          </h2>
-          <TabsList className='h-8 gap-1 rounded-none bg-transparent p-0'>
-            <TabsTrigger
-              className='h-8 rounded-none border-b-2 border-transparent px-2.5 py-1 text-xs text-zinc-500 data-[state=active]:border-zinc-950 data-[state=active]:bg-transparent data-[state=active]:text-zinc-950 data-[state=active]:shadow-none'
-              value='cast'
-            >
-              <I18nText messageKey='detail.cast' />
-            </TabsTrigger>
-            <TabsTrigger
-              className='h-8 rounded-none border-b-2 border-transparent px-2.5 py-1 text-xs text-zinc-500 data-[state=active]:border-zinc-950 data-[state=active]:bg-transparent data-[state=active]:text-zinc-950 data-[state=active]:shadow-none'
-              value='crew'
-            >
-              <I18nText messageKey='detail.crew' />
-            </TabsTrigger>
-          </TabsList>
-        </div>
-        <TabsContent value='cast'>
-          <CreditPanel>
-            <CastList data={data.cast} media={media} />
-          </CreditPanel>
-        </TabsContent>
-        <TabsContent value='crew'>
-          <CreditPanel>
-            <CrewList data={data.crew} media={media} />
-          </CreditPanel>
-        </TabsContent>
-      </Tabs>
+      <h2 id='credits-heading' className='sr-only'>
+        <I18nText
+          messageKey={
+            hasCharacters ? 'detail.charactersAndCredits' : 'detail.credits'
+          }
+        />
+      </h2>
+      <CreditsTabs
+        defaultValue={hasCharacters ? 'characters' : 'cast'}
+        tabs={tabs}
+        panels={panels}
+      />
     </section>
   );
 }

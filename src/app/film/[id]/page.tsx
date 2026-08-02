@@ -1,7 +1,9 @@
 import { Suspense, type ReactNode } from 'react';
 import { Metadata } from 'next';
+import { cookies } from 'next/headers';
 import { notFound } from 'next/navigation';
 
+import { findBangumiAnime } from '@/lib/bangumi';
 import Credits from '@/components/Credits/Credits';
 import DetailTheme from '@/components/DetailTheme/DetailTheme';
 import CreditsLoading from '@/components/Loading/CreditsLoading';
@@ -10,6 +12,7 @@ import ExternalRatings, {
 } from '@/components/DetailExternalInfo/ExternalRatings';
 import HeroRating from '@/components/DetailExternalInfo/HeroRating';
 import { I18nText } from '@/components/I18nProvider';
+import HeroGradient from '@/components/Motion/HeroGradient';
 import { Reveal } from '@/components/Motion/Reveal';
 import ImageHolder from '@/components/ui/ImageHolder';
 
@@ -19,6 +22,7 @@ import {
   TMDBError,
   type MovieDetail,
 } from '@/lib/data';
+import { DEFAULT_LOCALE, LOCALE_COOKIE, localeFromValue } from '@/lib/i18n';
 
 export async function generateMetadata({
   params,
@@ -47,10 +51,31 @@ export default async function Page({
 }) {
   const { id } = await params;
   const data = await loadMovie(id);
+  const locale = localeFromValue(
+    (await cookies()).get(LOCALE_COOKIE)?.value ?? DEFAULT_LOCALE,
+  );
   const certification = getCertificationByCountry(data, 'US');
+  const isAnimation = data.genres.some((genre) => genre.id === 16);
+  const translatedTitles = getTranslationTitles(data.translations, 'title');
+  const bangumi = isAnimation
+    ? await findBangumiAnime({
+        title: data.title,
+        originalTitle: data.original_title,
+        titles: translatedTitles,
+        year: data.release_date?.slice(0, 4),
+        media: 'movie',
+      })
+    : null;
   const backdropUrl = data.backdrop_path
     ? `https://image.tmdb.org/t/p/original${data.backdrop_path}`
     : null;
+  const tmdbPosterUrl = data.poster_path
+    ? `https://image.tmdb.org/t/p/w500${data.poster_path}`
+    : null;
+  const posterUrl =
+    locale === 'zh' && bangumi?.image
+      ? bangumi.image
+      : tmdbPosterUrl ?? bangumi?.image ?? null;
   const ratingProps = {
     imdbId: data.external_ids?.imdb_id,
     tmdbId: data.id,
@@ -62,10 +87,12 @@ export default async function Page({
     year: data.release_date?.slice(0, 4),
     doubanKey: `movie:${data.id}`,
     media: 'movie',
+    isAnimation,
+    bangumi,
   } satisfies ExternalRatingsProps;
 
   return (
-    <DetailTheme imageUrl={backdropUrl}>
+    <DetailTheme imageUrl={posterUrl}>
       <div className='relative mx-auto w-full max-w-6xl'>
         <Atmosphere backdropUrl={backdropUrl} />
 
@@ -74,6 +101,7 @@ export default async function Page({
             data={data}
             certification={certification}
             backdropUrl={backdropUrl}
+            posterUrl={posterUrl}
             ratingProps={ratingProps}
           />
         </Reveal>
@@ -93,7 +121,12 @@ export default async function Page({
 
             <Reveal>
               <Suspense fallback={<CreditsLoading />}>
-                <Credits id={id} media='movie' credits={data.credits} />
+                <Credits
+                  id={id}
+                  media='movie'
+                  credits={data.credits}
+                  bangumiCharacters={bangumi?.characters}
+                />
               </Suspense>
             </Reveal>
           </main>
@@ -137,17 +170,19 @@ function MovieHero({
   data,
   certification,
   backdropUrl,
+  posterUrl,
   ratingProps,
 }: {
   data: MovieDetail;
   certification: string | null;
   backdropUrl: string | null;
+  posterUrl: string | null;
   ratingProps: ExternalRatingsProps;
 }) {
   const year = data.release_date?.slice(0, 4);
 
   return (
-    <section className='relative isolate overflow-hidden'>
+    <section className='detail-hero relative left-1/2 isolate w-screen -translate-x-1/2 overflow-hidden'>
       <div className='relative aspect-[4/3] sm:aspect-[2/1] lg:aspect-[2.15/1]'>
         {backdropUrl ? (
           <div className='absolute inset-0 select-none'>
@@ -163,56 +198,74 @@ function MovieHero({
           <div className='absolute inset-0 bg-[radial-gradient(circle_at_75%_15%,rgb(100_116_139_/_0.45),transparent_45%),linear-gradient(135deg,#18181b,#09090b)]' />
         )}
 
-        <div className='absolute inset-0 bg-gradient-to-t from-black via-black/70 to-black/5' />
-        <div className='absolute inset-x-0 bottom-0 p-6 sm:p-10'>
-          <div className='w-full min-w-0 max-w-4xl'>
-            {data.original_title !== data.title && (
-              <p className='text-[11px] font-semibold uppercase tracking-[0.2em] text-white/60'>
-                <I18nText messageKey='detail.originalTitle' />:{' '}
-                {data.original_title}
-              </p>
+        <HeroGradient />
+        <div className='relative z-20 flex min-h-full items-end p-6 sm:p-10'>
+          <div className='flex items-end gap-4 sm:gap-6'>
+            {posterUrl && (
+              <div className='w-24 shrink-0 overflow-hidden rounded-xl border border-white/25 bg-black/20 shadow-[0_20px_45px_-20px_rgba(0,0,0,0.9)] ring-1 ring-black/10 sm:w-32 lg:w-44'>
+                <div className='aspect-[2/3]'>
+                  <ImageHolder
+                    src={posterUrl}
+                    alt={`${data.title}'s poster`}
+                    width={400}
+                    height={600}
+                    priority={true}
+                  />
+                </div>
+              </div>
             )}
-            <h1 className='mt-2 max-w-4xl break-words text-4xl font-semibold leading-[0.98] tracking-[-0.04em] text-white sm:text-6xl lg:text-7xl'>
-              {data.title}
-            </h1>
-            {data.tagline && (
-              <p className='mt-3 line-clamp-2 max-w-2xl text-sm leading-6 text-white/75 sm:text-base'>
-                {data.tagline}
-              </p>
-            )}
-
-            <div className='mt-5 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs font-medium text-white/80'>
-              <span>
-                {year || <I18nText messageKey='detail.unknownDate' />}
-              </span>
-              <MetaDivider />
-              <span>
-                {data.runtime || '—'}
-                <I18nText messageKey='detail.minutes' />
-              </span>
-              {certification && (
-                <>
-                  <MetaDivider />
-                  <span className='border border-white/35 px-1.5 py-0.5 text-white'>
-                    {certification}
-                  </span>
-                </>
+            <div className='w-full min-w-0 max-w-4xl flex-1'>
+              {data.original_title !== data.title && (
+                <p className='text-[11px] font-semibold uppercase tracking-[0.2em] text-white/60'>
+                  <I18nText messageKey='detail.originalTitle' />:{' '}
+                  {data.original_title}
+                </p>
               )}
-              <MetaDivider />
-              <HeroRating {...ratingProps} />
-            </div>
+              <h1 className='mt-2 max-w-4xl break-words text-4xl font-semibold leading-[0.98] tracking-[-0.04em] text-white sm:text-6xl lg:text-7xl'>
+                {data.title}
+              </h1>
+              {data.tagline && (
+                <p className='mt-3 line-clamp-2 max-w-2xl text-sm leading-6 text-white/75 sm:text-base'>
+                  {data.tagline}
+                </p>
+              )}
 
-            <div className='mt-3 flex flex-wrap items-center gap-x-2 text-xs text-white/70'>
-              {data.genres.map((genre, index) => (
-                <span key={genre.id} className='inline-flex items-center gap-2'>
-                  {index > 0 && (
-                    <span className='text-white/35' aria-hidden='true'>
-                      /
-                    </span>
-                  )}
-                  {genre.name}
+              <div className='mt-5 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs font-medium text-white/80'>
+                <span>
+                  {year || <I18nText messageKey='detail.unknownDate' />}
                 </span>
-              ))}
+                <MetaDivider />
+                <span>
+                  {data.runtime || '—'}
+                  <I18nText messageKey='detail.minutes' />
+                </span>
+                {certification && (
+                  <>
+                    <MetaDivider />
+                    <span className='border border-white/35 px-1.5 py-0.5 text-white'>
+                      {certification}
+                    </span>
+                  </>
+                )}
+                <MetaDivider />
+                <HeroRating {...ratingProps} />
+              </div>
+
+              <div className='mt-3 flex flex-wrap items-center gap-x-2 text-xs text-white/70'>
+                {data.genres.map((genre, index) => (
+                  <span
+                    key={genre.id}
+                    className='inline-flex items-center gap-2'
+                  >
+                    {index > 0 && (
+                      <span className='text-white/35' aria-hidden='true'>
+                        /
+                      </span>
+                    )}
+                    {genre.name}
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
         </div>

@@ -1,12 +1,19 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  BASE_THEME_VARS,
   createThemeVars,
   getContrastText,
   type ThemePalette,
 } from './detail-palette';
 
 describe('detail palette', () => {
+  it('uses a neutral black-and-white shell outside detail pages', () => {
+    expect(BASE_THEME_VARS['--theme-nav']).toBe('#050505');
+    expect(BASE_THEME_VARS['--theme-nav-text']).toBe('#ffffff');
+    expect(BASE_THEME_VARS['--theme-background']).toBe('#ffffff');
+  });
+
   it('chooses readable text for light and dark backgrounds', () => {
     expect(getContrastText('#ffffff')).toBe('#171717');
     expect(getContrastText('#111111')).toBe('#ffffff');

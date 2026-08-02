@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 import { animate, mixColor, type AnimationPlaybackControls } from 'motion';
 
 import {
+  BASE_THEME_VARS,
   createThemeVars,
   DEFAULT_THEME_VARS,
   extractPalette,
@@ -13,7 +14,11 @@ import {
 
 const themeCache = new Map<string, ThemeVars>();
 const pendingThemes = new Map<string, Promise<ThemeVars>>();
-const RGB_THEME_VARS = new Set(['--theme-accent-rgb', '--theme-nav-rgb']);
+const RGB_THEME_VARS = new Set([
+  '--theme-accent-rgb',
+  '--theme-hero-rgb',
+  '--theme-nav-rgb',
+]);
 const THEME_ANIMATION_DURATION = 0.46;
 
 let activeThemeAnimation: AnimationPlaybackControls | null = null;
@@ -148,7 +153,7 @@ function applyTheme(theme: ThemeVars) {
 
 function resetTheme() {
   const root = document.documentElement;
-  applyTheme(DEFAULT_THEME_VARS);
+  applyTheme(BASE_THEME_VARS);
   const version = themeAnimationVersion;
 
   if (!activeThemeAnimation) {

@@ -16,9 +16,11 @@ export function NavBar() {
   const pathname = usePathname();
   const { t } = useI18n();
   const [searching, setSearching] = React.useState(pathname === '/search');
+  const isDetailPage = Boolean(pathname?.match(/^\/(?:film|tv)\/[^/]+/));
   return (
     <nav
-      className={`themed-navbar mx-auto flex h-12 items-center justify-center overflow-hidden rounded-full p-2 transition-[width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none md:h-16 ${
+      data-detail-nav={isDetailPage ? 'true' : undefined}
+      className={`${isDetailPage ? 'detail-navbar' : ''} themed-navbar mx-auto flex h-12 items-center justify-center overflow-hidden rounded-full p-2 transition-[width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none md:h-16 ${
         searching
           ? 'w-[calc(100vw-2rem)] sm:w-96'
           : 'w-[282px] sm:w-[430px] md:w-[520px]'

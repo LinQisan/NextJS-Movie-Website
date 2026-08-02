@@ -8,6 +8,9 @@ const nextConfig = {
       {
         hostname: 'media.themoviedb.org',
       },
+      {
+        hostname: 'lain.bgm.tv',
+      },
     ],
   },
 };

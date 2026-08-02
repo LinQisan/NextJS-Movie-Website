@@ -23,7 +23,7 @@ export default function CarouselCard({
       whileHover={{ y: -4 }}
       whileTap={{ scale: 0.98 }}
       transition={{ type: 'spring', stiffness: 420, damping: 28 }}
-      className='flex w-[140px] flex-col gap-1.5 will-change-transform sm:w-[160px] lg:w-[180px]'
+      className='flex w-full flex-col gap-1.5 will-change-transform'
     >
       <Link
         href={`/film/${id}`}
